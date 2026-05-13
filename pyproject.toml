@@ -1,0 +1,54 @@
+[build-system]
+    requires = ["setuptools", "wheel"]
+    build-backend = "setuptools.build_meta"
+
+[project]
+    name = "jaimead7-spincam"
+    version = "0.0.1"
+    description = "Teledyne cameras control. A PySpin wrapper."
+    authors = [
+        {name = "Jaime Álvarez", email = "alvarez.diaz.jaime1@gmail.com"},
+    ]
+    maintainers = [
+        {name = "Jaime Álvarez", email = "alvarez.diaz.jaime1@gmail.com"},
+    ]
+    readme = {file = "README.md", content-type = "text/markdown"}
+    license = "MIT"
+    license-files = [
+        "LICENSE",
+    ]
+    keywords = [
+        "Teledyne",
+        "vision",
+        "camera"
+    ]
+    classifiers = [
+        "Programming Language :: Python :: 3.10",
+    ]
+    dependencies = [
+        "typing-extensions",
+        "numpy<2"
+    ]
+    requires-python = ">=3.10, <3.11"
+
+    [project.optional-dependencies]
+        headless = [
+            "opencv-python-headless"
+        ]
+        gui = [
+            "opencv-python"
+        ]
+        dev = [
+            "pytest",
+            "build",
+            "twine"
+        ]
+
+    [project.urls]
+        Homepage = "https://github.com/Jaimead7/SpinCam"
+        Repository = "https://github.com/Jaimead7/SpinCam"
+
+[tool.setuptools]
+    packages = ["spincam"]
+[tool.setuptools.package-data]
+    "spincam" = ["**/*"]

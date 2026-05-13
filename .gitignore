@@ -1,0 +1,30 @@
+# Project files
+*.db
+*.log
+delete*
+
+# Python files
+__pycache__/
+build/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+Typings/
+
+# Tools
+.venv/
+venv/
+env/
+.env*
+!.env.example
+.pytest_cache/
+
+# Git
+.git/
+
+# ide
+.vscode/
+.idea/
+*.swp
+*.swo
