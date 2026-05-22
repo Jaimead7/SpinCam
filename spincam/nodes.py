@@ -425,15 +425,35 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
             return FuncResult.ERROR, None
         return FuncResult.SUCCESS, value
 
+    def _validate_value(self, value: Any) -> int:
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            msg: str = f'Expected an integer, got "{value}".'
+            raise ValueError(msg)
+        try:
+            min_val: int = self.node.GetMin()
+            max_val: int = self.node.GetMax()
+            if value < min_val:
+                msg: str = f'{self.cam_name}: "{value}" is lower than "{self.name}" min value. "{min_val}" will be used.'
+                spincam_logger.warning(msg)
+                value = min_val
+            if value > max_val:
+                msg: str = f'{self.cam_name}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
+                spincam_logger.warning(msg)
+                value = max_val
+        except PySpin.SpinnakerException:
+            msg: str = f'{self.cam_name}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
+            spincam_logger.warning(msg)
+        return value
+
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
-        if value is None:
-            return FuncResult.ERROR, None
         try:
-            value = int(value)
-        except ValueError:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. Expected an integer, got "{value}".'
+            value = self._validate_value(value)
+        except ValueError as e:
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
