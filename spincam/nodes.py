@@ -599,6 +599,14 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
             if PySpin.IsWritable(self.node):
                 self._status = NodeStatus.RW
 
+    def _validate_value(self, value: Any) -> str:
+        try:
+            value = str(value)
+        except (ValueError, TypeError):
+            msg: str = f'Expected an string, got "{value}".'
+            raise ValueError(msg)
+        return value
+
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self._status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
@@ -616,12 +624,10 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
-        if value is None:
-            return FuncResult.ERROR, None
         try:
-            value = str(value)
-        except ValueError:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. Expected an string, got "{value}".'
+            value = self._validate_value(value)
+        except ValueError as e:
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
