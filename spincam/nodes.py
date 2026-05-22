@@ -307,7 +307,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         try:
             int_value: int = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
@@ -380,7 +380,7 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
@@ -467,7 +467,7 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
@@ -554,7 +554,7 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
@@ -627,7 +627,7 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
@@ -750,7 +750,7 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
