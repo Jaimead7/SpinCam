@@ -411,20 +411,6 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
             if PySpin.IsWritable(self.node):
                 self._status = NodeStatus.RW
 
-    def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
-            msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
-            spincam_logger.warning(msg)
-            return FuncResult.ERROR, None
-        value: int = self.node.GetValue()
-        try:
-            value = int(value)
-        except (ValueError, TypeError):
-            msg: str = f'{self.cam_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to int.'
-            spincam_logger.error(msg)
-            return FuncResult.ERROR, None
-        return FuncResult.SUCCESS, value
-
     def _validate_value(self, value: Any) -> int:
         try:
             value = int(value)
@@ -446,6 +432,20 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
             msg: str = f'{self.cam_name}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
             spincam_logger.warning(msg)
         return value
+
+    def get_value(self) -> tuple[FuncResult, Any]:
+        if not self._status.can_read():
+            msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
+            spincam_logger.warning(msg)
+            return FuncResult.ERROR, None
+        value: int = self.node.GetValue()
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            msg: str = f'{self.cam_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to int.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR, None
+        return FuncResult.SUCCESS, value
 
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
@@ -498,6 +498,28 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
             if PySpin.IsWritable(self.node):
                 self._status = NodeStatus.RW
 
+    def _validate_value(self, value: Any) -> int:
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            msg: str = f'Expected a float, got "{value}".'
+            raise ValueError(msg)
+        try:
+            min_val: int = self.node.GetMin()
+            max_val: int = self.node.GetMax()
+            if value < min_val:
+                msg: str = f'{self.cam_name}: "{value}" is lower than "{self.name}" min value. "{min_val}" will be used.'
+                spincam_logger.warning(msg)
+                value = min_val
+            if value > max_val:
+                msg: str = f'{self.cam_name}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
+                spincam_logger.warning(msg)
+                value = max_val
+        except PySpin.SpinnakerException:
+            msg: str = f'{self.cam_name}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
+            spincam_logger.warning(msg)
+        return value
+
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self._status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
@@ -515,12 +537,10 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
-        if value is None:
-            return FuncResult.ERROR, None
         try:
-            value = float(value)
-        except ValueError:
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. Expected a float, got "{value}".'
+            value = self._validate_value(value)
+        except ValueError as e:
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
