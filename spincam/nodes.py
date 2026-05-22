@@ -726,6 +726,12 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
     def length(self) -> int:
         return int(self.node.GetLength())
 
+    def _validate_value(self, value: Any) -> bytearray:
+        if not isinstance(value, bytearray):
+            msg: str = f'Expected an bytearray, got "{value}".'
+            raise ValueError(msg)
+        return value
+
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self._status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
@@ -741,10 +747,10 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
-        if value is None:
-            return FuncResult.ERROR, None
-        if not isinstance(value, bytearray):
-            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. Expected an bytearray, got "{value}".'
+        try:
+            value = self._validate_value(value)
+        except ValueError as e:
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
