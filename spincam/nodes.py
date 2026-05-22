@@ -272,27 +272,47 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
             if PySpin.IsWritable(self.node):
                 self._status = NodeStatus.RW
 
+    def _get_int_value(self, value: str) -> int:
+        try:
+            node_opt = PySpin.CEnumEntryPtr(self.node.GetEntryByName(value))
+            if not PySpin.IsReadable(node_opt):
+                raise PySpin.SpinnakerException
+            return node_opt.GetValue()
+        except PySpin.SpinnakerException:
+            msg: str = f'{self.cam_name}: Couldn\'t get "{value}" option from "{self.name}" node.'
+            spincam_logger.error(msg)
+            return -1
+
+    def _validate_value(self, value: Any) -> int:
+        if value is None:
+            msg: str = f'"None" is not a valid value.'
+            raise ValueError(msg)
+        int_value: int = self._get_int_value(str(value))
+        if int_value < 0:
+            msg: str = f'"{value}" is not a valid value.'
+            raise ValueError(msg)
+        return int_value
+
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self._status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        value: int = self.node.GetCurrentEntry().GetSymbolic()
+        value: str = self.node.GetCurrentEntry().GetSymbolic()
         return FuncResult.SUCCESS, value
 
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
-        if value is None:
+        try:
+            int_value: int = self._validate_value(value)
+        except ValueError as e:
+            msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}.'
+            spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self._status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
-            return FuncResult.ERROR, None
-        int_value: int = self._get_int_value(value)
-        if int_value < 0:
-            msg: str = f'{self.cam_name}: Unable to set "{value}" to "{self.name}" node. It is not a valid value.'
-            spincam_logger.error(msg)
             return FuncResult.ERROR, None
         try:
             self.node.SetIntValue(int_value)
@@ -300,23 +320,11 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{value}" to "{self.name}" node. Camera error.'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
-        str_value: str = self.node.GetCurrentEntry().GetSymbolic()
-        msg: str = f'{self.cam_name}: "{self.name}" set to "{str_value}".'
+        ret: FuncResult
+        ret, value = self.get_value()
+        msg: str = f'{self.cam_name}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
-        return FuncResult.SUCCESS, str_value
-
-    def _get_int_value(self, value: Any) -> int:
-        node_name: str = 'Unknown'
-        try:
-            node_name: str = self.node.GetName()
-            node_opt = PySpin.CEnumEntryPtr(self.node.GetEntryByName(value))
-            if not self._status.can_read():
-                raise PySpin.SpinnakerException
-            return node_opt.GetValue()
-        except PySpin.SpinnakerException:
-            msg: str = f'{self.cam_name}: Couldn\'t get "{value}" option from "{node_name}" node.'
-            spincam_logger.error(msg)
-            return -1
+        return FuncResult.SUCCESS, value
 
 
 @NodePtrReg.register(NODE_PTR_TYPES.BOOL.value)
@@ -498,9 +506,9 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
             if PySpin.IsWritable(self.node):
                 self._status = NodeStatus.RW
 
-    def _validate_value(self, value: Any) -> int:
+    def _validate_value(self, value: Any) -> float:
         try:
-            value = int(value)
+            value = float(value)
         except (ValueError, TypeError):
             msg: str = f'Expected a float, got "{value}".'
             raise ValueError(msg)
