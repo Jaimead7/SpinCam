@@ -675,6 +675,19 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
     def get_value(self) -> tuple[FuncResult, Any]:
         return FuncResult.SUCCESS, 'Execute'
 
+    def execute(self) -> FuncResult:
+        if not self._status.can_write():
+            msg: str = f'{self.cam_name}: Unable to execute "{self.name}" node. It is not a write node.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        try:
+            self.node.Execute()
+        except PySpin.SpinnakerException:
+            msg: str = f'{self.cam_name}: Unable execute "{self.name}" node. Camera error.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
 
 @NodePtrReg.register(NODE_PTR_TYPES.REGISTER.value)
 class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
