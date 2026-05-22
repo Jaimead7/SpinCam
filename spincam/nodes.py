@@ -304,6 +304,8 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
+        if value is None:
+            return FuncResult.ERROR, None
         try:
             int_value: int = self._validate_value(value)
         except ValueError as e:
@@ -377,6 +379,8 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
+        if value is None:
+            return FuncResult.ERROR, None
         try:
             value = self._validate_value(value)
         except ValueError as e:
@@ -464,6 +468,8 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
+        if value is None:
+            return FuncResult.ERROR, None
         try:
             value = self._validate_value(value)
         except ValueError as e:
@@ -551,6 +557,8 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
+        if value is None:
+            return FuncResult.ERROR, None
         try:
             value = self._validate_value(value)
         except ValueError as e:
@@ -624,6 +632,8 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
+        if value is None:
+            return FuncResult.ERROR, None
         try:
             value = self._validate_value(value)
         except ValueError as e:
@@ -747,6 +757,8 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             value = self.default_val
+        if value is None:
+            return FuncResult.ERROR, None
         try:
             value = self._validate_value(value)
         except ValueError as e:
