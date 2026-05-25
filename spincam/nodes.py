@@ -21,19 +21,13 @@
 
 from collections.abc import Callable, Sequence
 from functools import cached_property
-from typing import Any, ClassVar, Generic, Protocol, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 import PySpin
 from typing_extensions import Self
 
-from .schemas import NODE_PTR_TYPES, FuncResult, NodeStatus
+from .schemas import NODE_PTR_TYPES, FuncResult, GenericPtr, NodeStatus
 from .utils.logs import spincam_logger
-
-
-class GenericPtr(Protocol):
-    def __init__(self, *args) -> None: ...
-    def GetDisplayName(self) -> str: ...
-
 
 T = TypeVar('T', bound= GenericPtr)
 

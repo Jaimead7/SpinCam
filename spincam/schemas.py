@@ -20,6 +20,7 @@
 
 
 from enum import IntEnum
+from typing import Protocol
 
 import PySpin
 
@@ -33,6 +34,11 @@ class FuncResult(IntEnum):
 
     def is_error(self) -> bool:
         return self.value < 0
+
+
+class GenericPtr(Protocol):
+    def __init__(self, *args) -> None: ...
+    def GetDisplayName(self) -> str: ...
 
 
 class NodeStatus(IntEnum):
