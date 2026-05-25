@@ -23,17 +23,17 @@ from typing import TypeAlias
 
 import PySpin
 
-from .schemas import FuncResult, GenericPtr
+from .nodes import NodePtr
+from .schemas import FuncResult
 
-NodeCallbackFunc: TypeAlias = Callable[[GenericPtr], FuncResult]
+NodeCallbackFunc: TypeAlias = Callable[[NodePtr], FuncResult]
 
 
 class NodeCallback(PySpin.NodeCallback):
-    def __init__(self, func: NodeCallbackFunc, ptr_cls: type[GenericPtr]) -> None:
+    def __init__(self, func: NodeCallbackFunc, node_ptr: NodePtr) -> None:
         self._func = func
-        self._ptr_cls: type[GenericPtr] = ptr_cls
+        self._node_ptr: NodePtr = node_ptr
         super().__init__()
 
     def CallbackFunction(self, node: PySpin.INode) -> None:
-        ptr: GenericPtr = self._ptr_cls(node)
-        self._func(ptr)
+        self._func(self._node_ptr)
