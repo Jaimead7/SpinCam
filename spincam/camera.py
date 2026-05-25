@@ -222,6 +222,7 @@ class Camera:
 
     def clear(self) -> None:
         self.stop_acq()
+        self._node_callback_reg.unregister_all()
         self._ptr.DeInit()
         del self._ptr
 
