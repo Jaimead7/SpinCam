@@ -25,15 +25,84 @@ import PySpin
 
 from .nodes import NodePtr
 from .schemas import FuncResult
+from .utils.logs import spincam_logger
 
 NodeCallbackFunc: TypeAlias = Callable[[NodePtr], FuncResult]
 
 
 class NodeCallback(PySpin.NodeCallback):
-    def __init__(self, func: NodeCallbackFunc, node_ptr: NodePtr) -> None:
+    def __init__(
+        self,
+        cam_name: str,
+        func: NodeCallbackFunc,
+        node_ptr: NodePtr
+    ) -> None:
+        self._cam_name: str = cam_name
         self._func = func
         self._node_ptr: NodePtr = node_ptr
         super().__init__()
 
+    @property
+    def cam_name(self) -> str:
+        return self._cam_name.strip()
+
     def CallbackFunction(self, node: PySpin.INode) -> None:
         self._func(self._node_ptr)
+
+    def register(self) -> FuncResult:
+        #CHECK: if it is necesary to check if it is write node
+        # if not self._node_ptr.status.can_write():
+        #     msg: str = f'{self.cam_name}: Unable to register "{self._node_ptr.name}" node callback. It is not a write node.'
+        #     spincam_logger.error(msg)
+        #     return FuncResult.ERROR
+        try:
+            PySpin.RegisterNodeCallback(self._node_ptr.get_node(), self)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.cam_name}: Unable to register "{self._node_ptr.name}" node callback. {e}.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        msg: str = f'{self.cam_name}: "{self._node_ptr.name}" node callback registered.'
+        spincam_logger.info(msg)
+        return FuncResult.SUCCESS
+
+    def unregister(self) -> FuncResult:
+        try:
+            PySpin.DeregisterNodeCallback(self)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.cam_name}: Unable to unregister "{self._node_ptr.name}" node callback. {e}.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        msg: str = f'{self.cam_name}: "{self._node_ptr.name}" node callback unregistered.'
+        spincam_logger.info(msg)
+        return FuncResult.SUCCESS
+
+
+class NodeCallbackReg:
+    def __init__(self, cam_name: str) -> None:
+        self._cam_name: str = cam_name
+        self._callbacks: dict[str, NodeCallback] = {}
+
+    @property
+    def cam_name(self) -> str:
+        return self._cam_name.strip()
+
+    def register(self, func: NodeCallbackFunc, node_ptr: NodePtr) -> FuncResult:
+        node_route: str = node_ptr.route
+        if node_route in self._callbacks.keys():
+            msg: str = f'{self.cam_name}: Callback for "{node_ptr.name}" has already been registered. It will be overwritten.'
+            spincam_logger.warning(msg)
+            self._callbacks[node_route].unregister()
+        self._callbacks[node_route] = NodeCallback(
+            cam_name= self.cam_name,
+            func= func,
+            node_ptr= node_ptr
+        )
+        return self._callbacks[node_route].register()
+
+    def unregister(self, route: str) -> FuncResult:
+        callback: NodeCallback | None = self._callbacks.get(route, None)
+        if callback is None:
+            msg: str = f'{self.cam_name}: Unable to unregister "{route}" callback. Callback not found.'
+            spincam_logger.warning(msg)
+            return FuncResult.SUCCESS
+        return callback.unregister()
