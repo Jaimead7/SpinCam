@@ -19,6 +19,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from .callbacks import NodeCallbackFunc
 from .camera import (Camera, get_available_cam_names,
                      get_available_cam_serial_numbers, get_cam_list,
                      get_cam_list_repr, get_camera)
