@@ -100,6 +100,9 @@ class NodePtr(Generic[T]):
             spincam_logger.error(msg)
             return 'Unknown'
 
+    def get_node(self) -> PySpin.INode:
+        return self.node.GetNode()
+
     # CategoryPtr
     def get_subnodes(self) -> dict[str, Self]:
         msg: str = f'{self.cam_name}: "{self.__class__.__name__}" nodes don\'t have subnodes.'
