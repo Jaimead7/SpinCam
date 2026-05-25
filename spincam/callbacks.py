@@ -106,3 +106,7 @@ class NodeCallbackReg:
             spincam_logger.warning(msg)
             return FuncResult.SUCCESS
         return callback.unregister()
+
+    def unregister_all(self) -> None:
+        for callback in self._callbacks.values():
+            callback.unregister()
