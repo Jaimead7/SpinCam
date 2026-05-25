@@ -98,7 +98,7 @@ class NodePtr(Generic[T]):
         except PySpin.SpinnakerException:
             msg: str = f'{self.cam_name}: Unable to get display name for "{self.name}" node.'
             spincam_logger.error(msg)
-            return 'Unknown'
+            return self.name
 
     def get_node(self) -> PySpin.INode:
         return self.node.GetNode()
