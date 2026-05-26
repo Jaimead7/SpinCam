@@ -114,6 +114,11 @@ class NodePtr(Generic[T]):
         spincam_logger.warning(msg)
         return FuncResult.ERROR, []
 
+    def get_childrens(self) -> tuple[FuncResult, Sequence[PySpin.INode]]:
+        msg: str = f'{self.cam_name}: Childrens not defined for "{self.__class__.__name__}" nodes.'
+        spincam_logger.warning(msg)
+        return FuncResult.ERROR, []
+
     # Value Ptr's
     def get_value(self) -> tuple[FuncResult, Any]:
         msg: str = f'{self.cam_name}: Value not defined for "{self.__class__.__name__}" nodes.'
@@ -126,6 +131,12 @@ class NodePtr(Generic[T]):
         msg: str = f'{self.cam_name}: Value not defined for "{self.__class__.__name__}" nodes.'
         spincam_logger.warning(msg)
         return FuncResult.ERROR, None
+
+    # Command Ptr's
+    def execute(self) -> FuncResult:
+        msg: str = f'{self.cam_name}: Execute not defined for "{self.__class__.__name__}" nodes.'
+        spincam_logger.warning(msg)
+        return FuncResult.ERROR
 
 
 class NodePtrReg:
