@@ -209,25 +209,33 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
         return FuncResult.SUCCESS, ''
 
     def get_features(self) -> tuple[FuncResult, Sequence[PySpin.IValue]]:
-        if not self._status.can_read():
-            msg: str = f'{self.cam_name}: Can\'t extract features from {self.name} node.'
+        try:
+            features: Sequence[PySpin.IValue] = self.node.GetFeatures()
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.cam_name}: Can\'t extract features from {self.name} node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, []
-        features: Sequence[PySpin.IValue] = self.node.GetFeatures()
         return FuncResult.SUCCESS, features
+
+    def get_childrens(self) -> tuple[FuncResult, Sequence[PySpin.INode]]:
+        try:
+            childrens: Sequence[PySpin.IValue] = self.node.GetChildren()
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.cam_name}: Can\'t get childrens from {self.name} node. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR, []
+        return FuncResult.SUCCESS, childrens
 
     def get_subnodes(self) -> dict[str, NodePtr]:
         result: dict[str, NodePtr] = {}
         ret: FuncResult
-        features: Sequence[PySpin.IValue]
-        ret, features = self.get_features()
+        childrens: Sequence[PySpin.INode]
+        ret, childrens = self.get_childrens()
         if ret.is_error():
             return result
-        for feature in features:
-            if not PySpin.IsReadable(feature):
-                continue
-            name: str = feature.GetName()
-            iface_type: Any = feature.GetPrincipalInterfaceType()
+        for child in childrens:
+            name: str = child.GetName()
+            iface_type: Any = child.GetPrincipalInterfaceType()
             try:
                 NODE_PTR_TYPE: type[NodePtr] = NodePtrReg.get(iface_type)
             except ValueError:
