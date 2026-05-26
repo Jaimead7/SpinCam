@@ -23,6 +23,7 @@ from enum import IntEnum
 from typing import Protocol
 
 import PySpin
+from typing_extensions import Self
 
 
 class FuncResult(IntEnum):
@@ -53,6 +54,10 @@ class NodeStatus(IntEnum):
 
     def can_write(self) -> bool:
         return bool(self.value & 2)
+
+    @classmethod
+    def get_status(cls, read: bool, write: bool) -> Self:
+        return cls((read << 0) | (write << 1))
 
 
 class NODE_PTR_TYPES(IntEnum):
