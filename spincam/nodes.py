@@ -290,12 +290,15 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
 
     def _get_int_value(self, value: str) -> int:
         try:
-            node_opt = PySpin.CEnumEntryPtr(self.node.GetEntryByName(value))
+            entry: PySpin.IEnumEntry = self.node.GetEntryByName(value)
+            if entry is None:
+                raise PySpin.SpinnakerException('Option not found.')
+            node_opt = PySpin.CEnumEntryPtr(entry)
             if not PySpin.IsReadable(node_opt):
-                raise PySpin.SpinnakerException
+                raise PySpin.SpinnakerException('It is not a readeble node.')
             return node_opt.GetValue()
-        except PySpin.SpinnakerException:
-            msg: str = f'{self.cam_name}: Couldn\'t get "{value}" option from "{self.name}" node.'
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.cam_name}: Couldn\'t get "{value}" option from "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return -1
 
