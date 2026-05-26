@@ -20,8 +20,10 @@
 
 
 from enum import IntEnum
+from typing import Protocol
 
 import PySpin
+from typing_extensions import Self
 
 
 class FuncResult(IntEnum):
@@ -35,16 +37,27 @@ class FuncResult(IntEnum):
         return self.value < 0
 
 
+class GenericPtr(Protocol):
+    def __init__(self, *args) -> None: ...
+    def GetDisplayName(self) -> str: ...
+    def GetNode(self) -> PySpin.INode: ...
+
+
 class NodeStatus(IntEnum):
     UNKNOWN = 0
     R = 1
-    RW = 2
+    W = 2
+    RW = 3
 
     def can_read(self) -> bool:
-        return self.value > 0
+        return bool(self.value & 1)
 
     def can_write(self) -> bool:
-        return self.value == 2
+        return bool(self.value & 2)
+
+    @classmethod
+    def get_status(cls, read: bool, write: bool) -> Self:
+        return cls((read << 0) | (write << 1))
 
 
 class NODE_PTR_TYPES(IntEnum):
