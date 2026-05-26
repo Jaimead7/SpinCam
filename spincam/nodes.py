@@ -86,6 +86,7 @@ class NodePtr(Generic[T]):
 
     @property
     def status(self) -> NodeStatus:
+        self._update_status()
         return self._status
 
     @property
@@ -99,6 +100,15 @@ class NodePtr(Generic[T]):
             msg: str = f'{self.cam_name}: Unable to get display name for "{self.name}" node.'
             spincam_logger.error(msg)
             return self.name
+
+    def _update_status(self) -> None:
+        try:
+            self._status = NodeStatus.get_status(
+                read= PySpin.IsReadable(self.node),
+                write= PySpin.IsWritable(self.node)
+            )
+        except Exception:
+            self._status = NodeStatus.UNKNOWN
 
     def get_node(self) -> PySpin.INode:
         return self.node.GetNode()
@@ -211,10 +221,7 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node: PySpin.CCategoryPtr = PySpin.CCategoryPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def get_value(self) -> tuple[FuncResult, Any]:
         return FuncResult.SUCCESS, ''
@@ -283,10 +290,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CEnumerationPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def _get_int_value(self, value: str) -> int:
         try:
@@ -313,7 +317,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         return int_value
 
     def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
+        if not self.status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -331,7 +335,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -368,10 +372,7 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CBooleanPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def _validate_value(self, value: Any) -> bool:
         try:
@@ -382,7 +383,7 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
+        if not self.status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -406,7 +407,7 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -443,10 +444,7 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CIntegerPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def _validate_value(self, value: Any) -> int:
         try:
@@ -471,7 +469,7 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
+        if not self.status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -495,7 +493,7 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -532,10 +530,7 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CFloatPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def _validate_value(self, value: Any) -> float:
         try:
@@ -560,7 +555,7 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
+        if not self.status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -584,7 +579,7 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -621,10 +616,7 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CStringPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def _validate_value(self, value: Any) -> str:
         try:
@@ -635,7 +627,7 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
+        if not self.status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -659,7 +651,7 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -696,16 +688,13 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CCommandPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def get_value(self) -> tuple[FuncResult, Any]:
         return FuncResult.SUCCESS, 'Execute'
 
     def execute(self) -> FuncResult:
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to execute "{self.name}" node. It is not a write node.'
             spincam_logger.error(msg)
             return FuncResult.ERROR
@@ -738,10 +727,7 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CRegisterPtr(raw_node)
-        self._status = NodeStatus.get_status(
-            read= PySpin.IsReadable(self.node),
-            write= PySpin.IsWritable(self.node)
-        )
+        self._update_status()
 
     def __str__(self) -> str:
         ret: FuncResult
@@ -762,7 +748,7 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
-        if not self._status.can_read():
+        if not self.status.can_read():
             msg: str = f'{self.cam_name}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
@@ -784,7 +770,7 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
-        if not self._status.can_write():
+        if not self.status.can_write():
             msg: str = f'{self.cam_name}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
