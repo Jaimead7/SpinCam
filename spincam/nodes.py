@@ -211,10 +211,10 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node: PySpin.CCategoryPtr = PySpin.CCategoryPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def get_value(self) -> tuple[FuncResult, Any]:
         return FuncResult.SUCCESS, ''
@@ -283,10 +283,10 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CEnumerationPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def _get_int_value(self, value: str) -> int:
         try:
@@ -365,10 +365,10 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CBooleanPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def _validate_value(self, value: Any) -> bool:
         try:
@@ -440,10 +440,10 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CIntegerPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def _validate_value(self, value: Any) -> int:
         try:
@@ -529,10 +529,10 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CFloatPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def _validate_value(self, value: Any) -> float:
         try:
@@ -618,10 +618,10 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CStringPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def _validate_value(self, value: Any) -> str:
         try:
@@ -693,10 +693,10 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CCommandPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def get_value(self) -> tuple[FuncResult, Any]:
         return FuncResult.SUCCESS, 'Execute'
@@ -735,10 +735,10 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CRegisterPtr(raw_node)
-        if PySpin.IsReadable(self.node):
-            self._status = NodeStatus.R
-            if PySpin.IsWritable(self.node):
-                self._status = NodeStatus.RW
+        self._status = NodeStatus.get_status(
+            read= PySpin.IsReadable(self.node),
+            write= PySpin.IsWritable(self.node)
+        )
 
     def __str__(self) -> str:
         ret: FuncResult
