@@ -37,6 +37,7 @@
 # ================================================================================
 
 
+from random import randint
 from time import sleep, time
 from typing import Any
 
@@ -50,10 +51,11 @@ from spincam import (FuncResult, NodeCallbackFunc, NodePtr,
 
 def callback_func(node_ptr: NodePtr) -> FuncResult:
     print(f'"{node_ptr.display_name}" node callback execution...')
+    wait_time: int = randint(1, 5)
     start: float = time()
-    sleep(3)
+    sleep(wait_time)
     end: float = time()
-    print(f'"{node_ptr.display_name}" node callback executed in {end - start:.4f}s, expected 3s.')
+    print(f'"{node_ptr.display_name}" node callback executed in {end - start:.4f}s, expected {wait_time}s.')
     return FuncResult.SUCCESS
 
 
@@ -108,7 +110,6 @@ def main() -> None:
                     'App.Root.deviceSensorControl.Gain',
                     2
                 )
-                sleep(1)
                 print('Executing trigger...')
                 cam.execute_node('App.Root.DigitalIOControl.TriggerSoftware')
                 img: np.ndarray | None = cam.get_last_img()
