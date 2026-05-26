@@ -150,7 +150,7 @@ class Camera:
         node_ptr: NodePtr | None = self.get_node_ptr(node_name)
         if node_ptr is None:
             return ''
-        result: str = f'\n{"    "*(node_ptr.lvl+1)}• {node_ptr}'
+        result: str = f'\n{"    "*(node_ptr.lvl+1)}• {node_ptr.route}'
         child_nodes_names: list[str] = [
             key
             for key, value in self._node_ptrs.items()
@@ -293,6 +293,14 @@ class Camera:
         node_route: str
     ) -> FuncResult:
         return self._node_callback_reg.unregister(route= node_route)
+
+    def execute_node(self, node_route: str) -> FuncResult:
+        node_ptr: NodePtr | None = self.get_node_ptr(node_route)
+        if node_ptr is None:
+            msg: str = f'{self}: Unable to execute "{node_route}" node. Node not found.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return node_ptr.execute()
 
 
 def get_available_cam_serial_numbers() -> list[str]:
