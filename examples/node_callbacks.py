@@ -71,9 +71,12 @@ nodes_default_values: dict[str, Any] = {
     'App.Root.deviceCounterAndTimerControl.counterIncrementalSource': 'ValidFrameTrigger',
     'App.Root.deviceCounterAndTimerControl.counterResetSource': 'Off',
     'App.Root.deviceCounterAndTimerControl.counterDuration': 1,
+    'App.Root.deviceEventControl.EventSelector': 'ValidFrameTrigger',
+    'App.Root.deviceEventControl.EventNotification': 'On'
 }
 
 node_callbacks: dict[str, NodeCallbackFunc] = {
+    'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
     'App.Root.deviceSensorControl.Gain': callback_func,
     'App.Root.deviceCounterAndTimerControl.counterValue': callback_func,  # This callback will not work, but the counter is working.
 }
