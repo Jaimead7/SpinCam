@@ -29,7 +29,7 @@ from typing_extensions import Self
 
 from spincam.nodes import NodePtr
 
-from .callbacks import NodeCallbackFunc, NodeCallbackReg
+from .callbacks import NodeCallback, NodeCallbackFunc, NodeCallbackReg
 from .nodes import CategoryPtr
 from .schemas import FuncResult
 from .system import get_sys
@@ -293,6 +293,9 @@ class Camera:
         node_route: str
     ) -> FuncResult:
         return self._node_callback_reg.unregister(route= node_route)
+
+    def get_node_callbacks(self) -> dict[str, NodeCallback]:
+        return self._node_callback_reg.callbacks
 
     def execute_node(self, node_route: str) -> FuncResult:
         node_ptr: NodePtr | None = self.get_node_ptr(node_route)

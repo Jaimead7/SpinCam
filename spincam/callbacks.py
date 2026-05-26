@@ -18,6 +18,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
 from collections.abc import Callable
 from typing import TypeAlias
 
@@ -50,11 +51,6 @@ class NodeCallback(PySpin.NodeCallback):
         self._func(self._node_ptr)
 
     def register(self) -> FuncResult:
-        #CHECK: if it is necesary to check if it is write node
-        # if not self._node_ptr.status.can_write():
-        #     msg: str = f'{self.cam_name}: Unable to register "{self._node_ptr.name}" node callback. It is not a write node.'
-        #     spincam_logger.error(msg)
-        #     return FuncResult.ERROR
         try:
             PySpin.RegisterNodeCallback(self._node_ptr.get_node(), self)
         except PySpin.SpinnakerException as e:
@@ -85,6 +81,10 @@ class NodeCallbackReg:
     @property
     def cam_name(self) -> str:
         return self._cam_name.strip()
+
+    @property
+    def callbacks(self) -> dict[str, NodeCallback]:
+        return self._callbacks
 
     def register(self, func: NodeCallbackFunc, node_ptr: NodePtr) -> FuncResult:
         node_route: str = node_ptr.route
