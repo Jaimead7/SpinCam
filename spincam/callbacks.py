@@ -19,6 +19,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import threading
 from collections.abc import Callable
 from typing import TypeAlias
 
@@ -48,7 +49,11 @@ class NodeCallback(PySpin.NodeCallback):
         return self._cam_name.strip()
 
     def CallbackFunction(self, node: PySpin.INode) -> None:
-        self._func(self._node_ptr)
+        threading.Thread(
+            target= self._func,
+            args=(self._node_ptr,),
+            daemon= True
+        ).start()
 
     def register(self) -> FuncResult:
         try:
