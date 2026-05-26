@@ -45,13 +45,14 @@ class GenericPtr(Protocol):
 class NodeStatus(IntEnum):
     UNKNOWN = 0
     R = 1
-    RW = 2
+    W = 2
+    RW = 3
 
     def can_read(self) -> bool:
-        return self.value > 0
+        return bool(self.value & 1)
 
     def can_write(self) -> bool:
-        return self.value == 2
+        return bool(self.value & 2)
 
 
 class NODE_PTR_TYPES(IntEnum):
