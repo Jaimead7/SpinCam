@@ -125,17 +125,17 @@ class Camera:
         return {
             f'App.Root': CategoryPtr(
                 route= 'App.Root',
-                cam_name= str(self),
+                parent_name= str(self),
                 nodemap= self.nodemap,
             ),
             f'Device.Root': CategoryPtr(
                 route= 'Device.Root',
-                cam_name= str(self),
+                parent_name= str(self),
                 nodemap= self.tl_device_nodemap,
             ),
             f'Stream.Root': CategoryPtr(
                 route= 'Stream.Root',
-                cam_name= str(self),
+                parent_name= str(self),
                 nodemap= self.tl_stream_nodemap,
             )
         }
