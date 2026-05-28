@@ -123,17 +123,17 @@ class Camera:
 
     def _root_node_ptrs(self) -> dict[str, NodePtr]:
         return {
-            f'App.Root': CategoryPtr(
+            'App.Root': CategoryPtr(
                 route= 'App.Root',
                 parent_name= str(self),
                 nodemap= self.nodemap,
             ),
-            f'Device.Root': CategoryPtr(
+            'Device.Root': CategoryPtr(
                 route= 'Device.Root',
                 parent_name= str(self),
                 nodemap= self.tl_device_nodemap,
             ),
-            f'Stream.Root': CategoryPtr(
+            'Stream.Root': CategoryPtr(
                 route= 'Stream.Root',
                 parent_name= str(self),
                 nodemap= self.tl_stream_nodemap,
