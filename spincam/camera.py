@@ -349,8 +349,8 @@ def get_available_cam_names() -> list[str]:
 
 def get_cam_list_repr() -> str:
     cam_list_str = '\nCameras list:'
-    for cam_serial_number in get_available_cam_names():
-        cam_list_str += f'\n  • Camera "{cam_serial_number}"'
+    for cam_name in get_available_cam_names():
+        cam_list_str += f'\n  • {cam_name}'
     cam_list_str += '\n'
     return cam_list_str
 
