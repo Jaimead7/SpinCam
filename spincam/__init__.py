@@ -19,6 +19,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from .callbacks.iface_callbacks import IfaceEventFunc
 from .callbacks.node_callbacks import NodeCallbackFunc
 from .camera import (Camera, get_available_cam_names,
                      get_available_cam_serial_numbers, get_cam_list,
