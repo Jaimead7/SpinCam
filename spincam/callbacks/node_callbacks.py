@@ -25,9 +25,9 @@ from typing import TypeAlias
 
 import PySpin
 
-from .nodes import NodePtr
-from .schemas import FuncResult
-from .utils.logs import spincam_logger
+from ..nodes import NodePtr
+from ..schemas import FuncResult
+from ..utils.logs import spincam_logger
 
 NodeCallbackFunc: TypeAlias = Callable[[NodePtr], FuncResult]
 

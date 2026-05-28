@@ -29,7 +29,8 @@ from typing_extensions import Self
 
 from spincam.nodes import NodePtr
 
-from .callbacks import NodeCallback, NodeCallbackFunc, NodeCallbackReg
+from .callbacks.node_callbacks import (NodeCallback, NodeCallbackFunc,
+                                       NodeCallbackReg)
 from .nodes import CategoryPtr
 from .schemas import FuncResult
 from .system import get_sys
