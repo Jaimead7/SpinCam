@@ -195,20 +195,7 @@ def get_iface_list_repr() -> str:
 @contextmanager
 def get_iface_list() -> Generator[PySpin.InterfaceList, None, None]:
     with get_sys() as system:
-        try:
-            iface_list: PySpin.InterfaceList = system.GetInterfaces()
-            yield iface_list
-        finally:
-            try:
-                iface_list.Clear()  # type: ignore
-            except NameError:
-                pass
-            except PySpin.SpinnakerException:
-                msg: str = 'Can\'t clear interfaces list. Something still holds a reference.'
-                spincam_logger.error(msg)
-                raise RuntimeError(msg)
-            msg: str = f'Interfaces list cleared.'
-            spincam_logger.debug(msg, Styles.SUCCEED)
+        yield system.iface_list
 
 
 @contextmanager

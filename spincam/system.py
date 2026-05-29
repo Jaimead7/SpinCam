@@ -27,14 +27,51 @@ import PySpin
 from .utils.logs import Styles, spincam_logger
 
 
+class System:
+    def __init__(self, sys: PySpin.System) -> None:
+        self._sys: PySpin.System = sys
+        self._cam_list: PySpin.CameraList =  self._sys.GetCameras()
+        self._iface_list: PySpin.InterfaceList = self._sys.GetInterfaces()
+
+    @property
+    def cam_list(self) -> PySpin.CameraList:
+        self._update_cams()
+        return self._cam_list
+
+    @property
+    def iface_list(self) -> PySpin.InterfaceList:
+        self._update_ifaces()
+        return self._iface_list
+
+    def clear(self) -> None:
+        self._cam_list.Clear()
+        self._iface_list.Clear()
+        self._sys.ReleaseInstance()
+
+    def _update_cams(self) -> None:
+        try:
+            self._cam_list = self._sys.GetCameras()
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t update system cameras. {e}'
+            spincam_logger.warning(msg)
+
+    def _update_ifaces(self) -> None:
+        try:
+            self._iface_list = self._sys.GetInterfaces()
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t update system interfaces. {e}'
+            spincam_logger.warning(msg)
+
+
 @contextmanager
-def get_sys() -> Generator[PySpin.System, None, None]:
+def get_sys() -> Generator[System, None, None]:
     try:
-        system: PySpin.System = PySpin.System.GetInstance()
+        sys: PySpin.System = PySpin.System.GetInstance()
+        system: System = System(sys)
         yield system
     finally:
         try:
-            system.ReleaseInstance()  # type: ignore
+            system.clear()  # type: ignore
         except NameError:
             pass
         except PySpin.SpinnakerException:

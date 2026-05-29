@@ -357,20 +357,7 @@ def get_cam_list_repr() -> str:
 @contextmanager
 def get_cam_list() -> Generator[PySpin.CameraList, None, None]:
     with get_sys() as system:
-        try:
-            cam_list: PySpin.CameraList = system.GetCameras()
-            yield cam_list
-        finally:
-            try:
-                cam_list.Clear()  # type: ignore
-            except NameError:
-                pass
-            except PySpin.SpinnakerException:
-                msg: str = 'Can\'t clear cameras list. Something still holds a reference.'
-                spincam_logger.error(msg)
-                raise RuntimeError(msg)
-            msg: str = f'Cameras list cleared.'
-            spincam_logger.debug(msg, Styles.SUCCEED)
+        yield system.cam_list
 
 @contextmanager
 def get_camera(serial_number: str) -> Generator[Camera, None, None]:

@@ -29,6 +29,6 @@ from .interface import (Iface, get_available_iface_ids,
                         get_iface_list_repr)
 from .nodes import NodePtr, NodePtrReg
 from .schemas import FuncResult, NodeStatus
-from .system import get_sys
+from .system import System, get_sys
 from .utils.logs import spincam_logger
 from .utils.timing import time_func, time_group
