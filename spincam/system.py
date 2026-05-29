@@ -21,7 +21,7 @@
 
 import PySpin
 
-from .callbacks.sys_callbacks import SysEventFunc, SysEventHandler
+from .callbacks.sys_callbacks import SysEventCallback, SysEventHandler
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 
@@ -66,13 +66,13 @@ class System:
 
     def register_iface_events(
         self,
-        iface_arrival_func: SysEventFunc | None = None,
-        iface_removal_func: SysEventFunc | None = None
+        iface_arrival_callback: SysEventCallback | None = None,
+        iface_removal_callback: SysEventCallback | None = None
     ) -> FuncResult:
-        if iface_arrival_func is not None:
-            self._callbacks.set_arr_func(iface_arrival_func)
-        if iface_removal_func is not None:
-            self._callbacks.set_rm_func(iface_removal_func)
+        if iface_arrival_callback is not None:
+            self._callbacks.set_arr_callback(iface_arrival_callback)
+        if iface_removal_callback is not None:
+            self._callbacks.set_rm_callback(iface_removal_callback)
         try:
             self._sys.RegisterEventHandler(self._callbacks)
         except PySpin.SpinnakerException as e:

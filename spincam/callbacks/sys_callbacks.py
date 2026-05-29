@@ -28,41 +28,41 @@ import PySpin
 from ..interface import Iface
 from ..schemas import FuncResult
 
-SysEventFunc: TypeAlias = Callable[[Iface], FuncResult]
+SysEventCallback: TypeAlias = Callable[[Iface], FuncResult]
 
 
 class SysEventHandler(PySpin.SystemEventHandler):
     def __init__(
         self,
-        iface_arrival_func: SysEventFunc | None = None,
-        iface_removal_func: SysEventFunc | None = None
+        iface_arrival_callback: SysEventCallback | None = None,
+        iface_removal_callback: SysEventCallback | None = None
     ) -> None:
-        if iface_arrival_func is None:
-            iface_arrival_func = self._dummy_callback
-        if iface_removal_func is None:
-            iface_removal_func = self._dummy_callback
-        self._arr_func: SysEventFunc = iface_arrival_func
-        self._rm_func: SysEventFunc = iface_removal_func
+        if iface_arrival_callback is None:
+            iface_arrival_callback = self._dummy_callback
+        if iface_removal_callback is None:
+            iface_removal_callback = self._dummy_callback
+        self._arr_callback: SysEventCallback = iface_arrival_callback
+        self._rm_callback: SysEventCallback = iface_removal_callback
         super().__init__()
 
     @staticmethod
     def _dummy_callback(iface: Iface) -> FuncResult:
         return FuncResult.SUCCESS
 
-    def set_arr_func(self, func: SysEventFunc | None = None) -> None:
-        if func is None:
-            func = self._dummy_callback
-        self._arr_func = func
+    def set_arr_callback(self, callback: SysEventCallback | None = None) -> None:
+        if callback is None:
+            callback = self._dummy_callback
+        self._arr_callback = callback
 
-    def set_rm_func(self, func: SysEventFunc | None = None) -> None:
-        if func is None:
-            func = self._dummy_callback
-        self._rm_func = func
+    def set_rm_callback(self, callback: SysEventCallback | None = None) -> None:
+        if callback is None:
+            callback = self._dummy_callback
+        self._rm_callback = callback
 
     def OnInterfaceArrival(self, pInterface: PySpin.InterfacePtr) -> None:
         iface = Iface(ptr= pInterface)
         threading.Thread(
-            target= self._arr_func,
+            target= self._arr_callback,
             args=(iface,),
             daemon= True
         ).start()
@@ -70,7 +70,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
     def OnInterfaceRemoval(self, pInterface: PySpin.InterfacePtr) -> None:
         iface = Iface(ptr= pInterface)
         threading.Thread(
-            target= self._rm_func,
+            target= self._rm_callback,
             args=(iface,),
             daemon= True
         ).start()
