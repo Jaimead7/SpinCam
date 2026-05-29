@@ -19,12 +19,9 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Generator
-from contextlib import contextmanager
-
 import PySpin
 
-from .utils.logs import Styles, spincam_logger
+from .utils.logs import spincam_logger
 
 
 class System:
@@ -61,22 +58,3 @@ class System:
         except PySpin.SpinnakerException as e:
             msg: str = f'Can\'t update system interfaces. {e}'
             spincam_logger.warning(msg)
-
-
-@contextmanager
-def get_sys() -> Generator[System, None, None]:
-    try:
-        sys: PySpin.System = PySpin.System.GetInstance()
-        system: System = System(sys)
-        yield system
-    finally:
-        try:
-            system.clear()  # type: ignore
-        except NameError:
-            pass
-        except PySpin.SpinnakerException:
-            msg: str = 'Can\'t clear system. Something still holds a reference.'
-            spincam_logger.error(msg)
-            raise RuntimeError(msg)
-        msg: str = f'PySpin system cleared.'
-        spincam_logger.debug(msg, Styles.SUCCEED)

@@ -19,16 +19,16 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from .callbacks.iface_callbacks import IfaceEventFunc
 from .callbacks.node_callbacks import NodeCallbackFunc
-from .camera import (Camera, get_available_cam_names,
-                     get_available_cam_serial_numbers, get_cam_list,
-                     get_cam_list_repr, get_camera)
-from .interface import (Iface, get_available_iface_ids,
-                        get_available_ifaces_names, get_iface, get_iface_list,
-                        get_iface_list_repr)
+from .camera import Camera
+from .interface import Iface
+from .managers import (get_available_cam_names,
+                       get_available_cam_serial_numbers,
+                       get_available_iface_ids, get_available_ifaces_names,
+                       get_cam_list, get_cam_list_repr, get_camera, get_iface,
+                       get_iface_list, get_iface_list_repr, get_sys)
 from .nodes import NodePtr, NodePtrReg
 from .schemas import FuncResult, NodeStatus
-from .system import System, get_sys
+from .system import System
 from .utils.logs import spincam_logger
 from .utils.timing import time_func, time_group

@@ -19,16 +19,14 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Generator, Sequence
-from contextlib import contextmanager
+from collections.abc import Sequence
 from typing import Any
 
 import PySpin
 
 from .nodes import CategoryPtr, NodePtr, NodePtrReg
 from .schemas import FuncResult
-from .system import get_sys
-from .utils.logs import Styles, spincam_logger
+from .utils.logs import spincam_logger
 
 
 class Iface:
@@ -143,77 +141,3 @@ class Iface:
 
     def clear(self) -> None:
         del self._ptr
-
-
-def get_available_iface_ids() -> list[str]:
-    _list: list = []
-    with get_iface_list() as iface_list:
-        num_ifaces: int = iface_list.GetSize()
-        if num_ifaces == 0:
-            msg: str = 'Didn\'t find any interface.'
-            spincam_logger.error(msg)
-            raise RuntimeError(msg)
-        msg: str = f'Found {num_ifaces} {"interface" if num_ifaces == 1 else "interfaces"}.'
-        spincam_logger.info(msg)
-        for iface_ptr in iface_list:
-            iface = Iface(iface_ptr)
-            _list.append(iface.id)
-            iface.clear()
-        try:
-            del iface_ptr  # type: ignore
-        except NameError:
-            pass
-    return _list
-
-def get_available_ifaces_names() -> list[str]:
-    _list: list = []
-    with get_iface_list() as iface_list:
-        num_ifaces: int = iface_list.GetSize()
-        if num_ifaces == 0:
-            msg: str = 'Didn\'t find any interface.'
-            spincam_logger.error(msg)
-            raise RuntimeError(msg)
-        msg: str = f'Found {num_ifaces} {"interface" if num_ifaces == 1 else "interfaces"}.'
-        spincam_logger.info(msg)
-        for iface_ptr in iface_list:
-            iface = Iface(iface_ptr)
-            _list.append(iface.name)
-            iface.clear()
-        try:
-            del iface_ptr  # type: ignore
-        except NameError:
-            pass
-    return _list
-
-def get_iface_list_repr() -> str:
-    iface_list_str = '\nInterfaces list:'
-    for iface_name in get_available_ifaces_names():
-        iface_list_str += f'\n  • {iface_name}'
-    iface_list_str += '\n'
-    return iface_list_str
-
-@contextmanager
-def get_iface_list() -> Generator[PySpin.InterfaceList, None, None]:
-    with get_sys() as system:
-        yield system.iface_list
-
-
-@contextmanager
-def get_iface(id: str) -> Generator[Iface, None, None]:
-    with get_iface_list() as iface_list:
-        try:
-            ptr: PySpin.InterfacePtr = iface_list.GetByInterfaceID(id)
-            iface = Iface(ptr)
-            del ptr
-            yield iface
-        except RuntimeError:
-            raise
-        except ValueError:
-            raise
-        finally:
-            try:
-                iface.clear()  # type: ignore
-            except NameError:
-                pass
-            msg: str = f'Interface "{id}" cleared.'
-            spincam_logger.debug(msg, Styles.SUCCEED)

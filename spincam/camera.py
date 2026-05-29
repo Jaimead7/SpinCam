@@ -19,8 +19,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Generator, Sequence
-from contextlib import contextmanager
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -33,8 +32,7 @@ from .callbacks.node_callbacks import (NodeCallback, NodeCallbackFunc,
                                        NodeCallbackReg)
 from .nodes import CategoryPtr
 from .schemas import FuncResult
-from .system import get_sys
-from .utils.logs import Styles, spincam_logger
+from .utils.logs import spincam_logger
 from .utils.timing import time_group
 
 
@@ -305,76 +303,3 @@ class Camera:
             spincam_logger.error(msg)
             return FuncResult.ERROR
         return node_ptr.execute()
-
-
-def get_available_cam_serial_numbers() -> list[str]:
-    _list: list = []
-    with get_cam_list() as cam_list:
-        num_cameras: int = cam_list.GetSize()
-        if num_cameras == 0:
-            msg: str = 'Didn\'t find any camera.'
-            spincam_logger.error(msg)
-            raise RuntimeError(msg)
-        msg: str = f'Found {num_cameras} {"camera" if num_cameras == 1 else "cameras"}.'
-        spincam_logger.info(msg)
-        for cam_ptr in cam_list:
-            cam = Camera(cam_ptr)
-            _list.append(cam.serial_number)
-            cam.clear()
-        try:
-            del cam_ptr  # type: ignore
-        except NameError:
-            pass
-    return _list
-
-def get_available_cam_names() -> list[str]:
-    _list: list = []
-    with get_cam_list() as cam_list:
-        num_cameras: int = cam_list.GetSize()
-        if num_cameras == 0:
-            msg: str = 'Didn\'t find any camera.'
-            spincam_logger.error(msg)
-            raise RuntimeError(msg)
-        msg: str = f'Found {num_cameras} {"camera" if num_cameras == 1 else "cameras"}.'
-        spincam_logger.info(msg)
-        for cam_ptr in cam_list:
-            cam = Camera(cam_ptr)
-            _list.append(cam.name)
-            cam.clear()
-        try:
-            del cam_ptr  # type: ignore
-        except NameError:
-            pass
-    return _list
-
-def get_cam_list_repr() -> str:
-    cam_list_str = '\nCameras list:'
-    for cam_name in get_available_cam_names():
-        cam_list_str += f'\n  • {cam_name}'
-    cam_list_str += '\n'
-    return cam_list_str
-
-@contextmanager
-def get_cam_list() -> Generator[PySpin.CameraList, None, None]:
-    with get_sys() as system:
-        yield system.cam_list
-
-@contextmanager
-def get_camera(serial_number: str) -> Generator[Camera, None, None]:
-    with get_cam_list() as cam_list:
-        try:
-            ptr: PySpin.CameraPtr = cam_list.GetBySerial(serial_number)
-            cam = Camera(ptr)
-            del ptr
-            yield cam
-        except RuntimeError:
-            raise
-        except ValueError:
-            raise
-        finally:
-            try:
-                cam.clear()  # type: ignore
-            except NameError:
-                pass
-            msg: str = f'Camera "{serial_number}" cleared.'
-            spincam_logger.debug(msg, Styles.SUCCEED)
