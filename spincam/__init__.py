@@ -21,12 +21,10 @@
 
 from .callbacks.node_callbacks import NodeCallbackFunc
 from .camera import Camera
-from .interface import Iface
+from .interface import Iface, get_iface_list_repr
 from .managers import (get_available_cam_names,
-                       get_available_cam_serial_numbers,
-                       get_available_iface_ids, get_available_ifaces_names,
-                       get_cam_list, get_cam_list_repr, get_camera, get_iface,
-                       get_iface_list, get_iface_list_repr, get_sys)
+                       get_available_cam_serial_numbers, get_cam_list,
+                       get_cam_list_repr, get_camera, get_sys)
 from .nodes import NodePtr, NodePtrReg
 from .schemas import FuncResult, NodeStatus
 from .system import System

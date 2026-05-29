@@ -19,9 +19,13 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from collections.abc import Iterable
+from threading import Lock
+
 import PySpin
 
 from .callbacks.sys_callbacks import SysEventCallback, SysEventHandler
+from .interface import Iface, IfaceReg
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 
@@ -29,8 +33,8 @@ from .utils.logs import spincam_logger
 class System:
     def __init__(self, sys: PySpin.System) -> None:
         self._sys: PySpin.System = sys
+        self._iface_reg = IfaceReg()
         self._cam_list: PySpin.CameraList =  self._sys.GetCameras()
-        self._iface_list: PySpin.InterfaceList = self._sys.GetInterfaces()
         self._callbacks: SysEventHandler = SysEventHandler()
 
     @property
@@ -39,13 +43,19 @@ class System:
         return self._cam_list
 
     @property
-    def iface_list(self) -> PySpin.InterfaceList:
+    def ifaces(self) -> Iterable[Iface]:
         self._update_ifaces()
-        return self._iface_list
+        return self._iface_reg.ifaces.values()
+
+    @property
+    def ifaces_ids(self) -> Iterable[str]:
+        self._update_ifaces()
+        return self._iface_reg.ifaces.keys()
 
     def clear(self) -> None:
+        self._iface_reg.clear()
+        del self._iface_reg
         self._cam_list.Clear()
-        self._iface_list.Clear()
         self.unregister_events()
         del self._callbacks
         self._sys.ReleaseInstance()
@@ -59,10 +69,22 @@ class System:
 
     def _update_ifaces(self) -> None:
         try:
-            self._iface_list = self._sys.GetInterfaces()
+            iface_list: PySpin.InterfaceList = self._sys.GetInterfaces()
+            for iface in iface_list:
+                self._iface_reg.register(iface_ptr= iface)
+            try:
+                del iface  # type: ignore
+            except NameError:
+                pass
+            iface_list.Clear()
+            del iface_list
         except PySpin.SpinnakerException as e:
             msg: str = f'Can\'t update system interfaces. {e}'
             spincam_logger.warning(msg)
+
+    def get_iface_by_id(self, id: str) -> Iface | None:
+        self._update_ifaces()
+        return self._iface_reg.get(id)
 
     def register_iface_events(
         self,

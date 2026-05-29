@@ -28,22 +28,25 @@
 # ================================================================================
 
 
-from spincam import get_available_iface_ids, get_iface, get_iface_list_repr
+from spincam import Iface, get_iface_list_repr, get_sys
 
 
 def main() -> None:
-    print(get_iface_list_repr())
-    iface_selected: str = input('Select an interface by id: ')
-
-    if not iface_selected in get_available_iface_ids():
-        raise ValueError('Please select a valid id.')
-
     try:
-        with get_iface(iface_selected) as iface:
+        with get_sys() as sys:
+            print(get_iface_list_repr(sys.ifaces))
+            iface_selected: str = input('Select an interface by id: ')
+            if iface_selected not in sys.ifaces_ids:
+                raise ValueError('Please select a valid id.')
+            iface: Iface | None = sys.get_iface_by_id(iface_selected)
+            if iface is None:
+                raise ValueError
             tree: str = iface.get_nodes_repr()
             print(tree)
     except ValueError as e:
-        print(e)
+        pass
+    except RuntimeError as e:
+        pass
 
 
 if __name__ == '__main__':

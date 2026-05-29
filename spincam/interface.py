@@ -19,7 +19,8 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Sequence
+from collections.abc import Iterable
+from functools import cached_property
 from typing import Any
 
 import PySpin
@@ -41,11 +42,11 @@ class Iface:
     def __repr__(self) -> str:
         return self.get_nodes_repr()
 
-    @property
+    @cached_property
     def name(self) -> str:
         return f'{self.display_name} ({self.id})'
 
-    @property
+    @cached_property
     def id(self) -> str:
         try:
             raw_node: PySpin.INode = self.nodemap.GetNode('InterfaceID')
@@ -65,7 +66,7 @@ class Iface:
             spincam_logger.warning(msg)
             return 'Unknown'
 
-    @property
+    @cached_property
     def display_name(self) -> str:
         try:
             raw_node: PySpin.INode = self.nodemap.GetNode('InterfaceDisplayName')
@@ -85,7 +86,7 @@ class Iface:
             spincam_logger.warning(msg)
             return 'Unknown'
 
-    @property
+    @cached_property
     def nodemap(self) -> PySpin.INodeMap:
         try:
             return self._ptr.GetTLNodeMap()
@@ -123,7 +124,7 @@ class Iface:
             result += self._get_node_tree(child)
         return result
 
-    def get_nodes_repr(self, nodes: Sequence[str] | None = None) -> str:
+    def get_nodes_repr(self, nodes: Iterable[str] | None = None) -> str:
         if nodes is None:
             nodes = tuple(self._root_node_ptrs().keys())
         result: str = f'\n{self}:'
@@ -141,3 +142,56 @@ class Iface:
 
     def clear(self) -> None:
         del self._ptr
+
+
+class IfaceReg:
+    def __init__(self) -> None:
+        self._ifaces: dict[str, Iface] = {}
+
+    @property
+    def ifaces(self) -> dict[str, Iface]:
+        return self._ifaces
+
+    def clear(self) -> None:
+        for iface in self._ifaces.values():
+            iface.clear()
+        try:
+            del iface  # type: ignore
+        except NameError:
+            pass
+        del self._ifaces
+
+    def get(self, id: str) -> Iface | None:
+        iface: Iface | None = self._ifaces.get(id, None)
+        if iface is None:
+            msg: str = f'Interface "{id}" not found.'
+            spincam_logger.error(msg)
+            return None
+        return iface
+
+    def register(self, iface_ptr: PySpin.InterfacePtr) -> FuncResult:
+        iface: Iface = Iface(iface_ptr)
+        if iface.id in self._ifaces.keys():
+            iface.clear()
+            del iface
+            return FuncResult.ERROR
+        self._ifaces[iface.id] = iface
+        return FuncResult.SUCCESS
+
+    def unregister(self, id: str) -> FuncResult:
+        iface: Iface | None = self._ifaces.pop(id, None)
+        if iface is None:
+            msg: str = f'Interface "{id}" not found.'
+            spincam_logger.warning(msg)
+            return FuncResult.SUCCESS
+        iface.clear()
+        del iface
+        return FuncResult.SUCCESS
+
+
+def get_iface_list_repr(ifaces: Iterable[Iface]) -> str:
+    iface_list_str = '\nInterfaces list:'
+    for iface_name in ifaces:
+        iface_list_str += f'\n  • {iface_name}'
+    iface_list_str += '\n'
+    return iface_list_str
