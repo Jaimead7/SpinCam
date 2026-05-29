@@ -21,6 +21,8 @@
 
 import PySpin
 
+from .callbacks.sys_callbacks import SysEventFunc, SysEventHandler
+from .schemas import FuncResult
 from .utils.logs import spincam_logger
 
 
@@ -29,6 +31,7 @@ class System:
         self._sys: PySpin.System = sys
         self._cam_list: PySpin.CameraList =  self._sys.GetCameras()
         self._iface_list: PySpin.InterfaceList = self._sys.GetInterfaces()
+        self._callbacks: SysEventHandler = SysEventHandler()
 
     @property
     def cam_list(self) -> PySpin.CameraList:
@@ -43,6 +46,8 @@ class System:
     def clear(self) -> None:
         self._cam_list.Clear()
         self._iface_list.Clear()
+        self.unregister_events()
+        del self._callbacks
         self._sys.ReleaseInstance()
 
     def _update_cams(self) -> None:
@@ -58,3 +63,29 @@ class System:
         except PySpin.SpinnakerException as e:
             msg: str = f'Can\'t update system interfaces. {e}'
             spincam_logger.warning(msg)
+
+    def register_iface_events(
+        self,
+        iface_arrival_func: SysEventFunc | None = None,
+        iface_removal_func: SysEventFunc | None = None
+    ) -> FuncResult:
+        if iface_arrival_func is not None:
+            self._callbacks.set_arr_func(iface_arrival_func)
+        if iface_removal_func is not None:
+            self._callbacks.set_rm_func(iface_removal_func)
+        try:
+            self._sys.RegisterEventHandler(self._callbacks)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t register system events. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def unregister_events(self) -> FuncResult:
+        try:
+            self._sys.UnregisterEventHandler(self._callbacks)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t unregister system events. {e}'
+            spincam_logger.warning(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
