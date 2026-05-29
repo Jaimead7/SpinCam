@@ -51,7 +51,9 @@ def main() -> None:
         'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
         'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
         'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'OldestFirst',
-        'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3
+        'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
+        'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
+        'App.Root.DigitalIOControl.TriggerMode': 'Off',
     }
 
     print(get_cam_list_repr())
