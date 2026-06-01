@@ -24,6 +24,8 @@ from contextlib import contextmanager
 
 import PySpin
 
+from .callbacks.iface_callbacks import (IfaceEventCallback,
+                                        InterfaceEventHandler)
 from .callbacks.sys_callbacks import SysEventCallback, SysEventHandler
 from .camera import Camera
 from .interface import Iface, IfaceReg
@@ -35,7 +37,11 @@ class System:
     def __init__(self, sys: PySpin.System) -> None:
         self._sys: PySpin.System = sys
         self._iface_reg = IfaceReg()
-        self._callbacks: SysEventHandler = SysEventHandler()
+        self._sys_events: SysEventHandler = SysEventHandler()
+        self._iface_events: InterfaceEventHandler = InterfaceEventHandler(f'{self}')
+
+    def __str__(self) -> str:
+        return 'System'
 
     @property
     def ifaces(self) -> Iterable[Iface]:
@@ -87,7 +93,8 @@ class System:
         self._iface_reg.clear()
         del self._iface_reg
         self.unregister_events()
-        del self._callbacks
+        del self._sys_events
+        del self._iface_events
         self._sys.ReleaseInstance()
 
     def get_iface_by_id(self, id: str) -> Iface | None:
@@ -104,28 +111,51 @@ class System:
         spincam_logger.warning(msg)
         return None
 
-    def register_iface_events(
+    def register_sys_events(
         self,
         iface_arrival_callback: SysEventCallback | None = None,
         iface_removal_callback: SysEventCallback | None = None
     ) -> FuncResult:
         if iface_arrival_callback is not None:
-            self._callbacks.set_arr_callback(iface_arrival_callback)
+            self._sys_events.set_arr_callback(iface_arrival_callback)
         if iface_removal_callback is not None:
-            self._callbacks.set_rm_callback(iface_removal_callback)
+            self._sys_events.set_rm_callback(iface_removal_callback)
         try:
-            self._sys.RegisterEventHandler(self._callbacks)
+            self._sys.RegisterEventHandler(self._sys_events)
         except PySpin.SpinnakerException as e:
             msg: str = f'Can\'t register system events. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS
 
+    def register_iface_events(
+        self,
+        device_arrival_callback: IfaceEventCallback | None = None,
+        device_removal_callback: IfaceEventCallback | None = None
+    ) -> FuncResult:
+        if device_arrival_callback is not None:
+            self._iface_events.set_arr_callback(device_arrival_callback)
+        if device_removal_callback is not None:
+            self._iface_events.set_rm_callback(device_removal_callback)
+        try:
+            self._sys.RegisterEventHandler(self._iface_events)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t register interface events. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
     def unregister_events(self) -> FuncResult:
         try:
-            self._sys.UnregisterEventHandler(self._callbacks)
+            self._sys.UnregisterEventHandler(self._sys_events)
         except PySpin.SpinnakerException as e:
             msg: str = f'Can\'t unregister system events. {e}'
+            spincam_logger.warning(msg)
+            return FuncResult.ERROR
+        try:
+            self._sys.UnregisterEventHandler(self._iface_events)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t unregister interface events. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS

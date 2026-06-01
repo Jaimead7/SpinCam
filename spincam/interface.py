@@ -25,6 +25,8 @@ from typing import Any
 
 import PySpin
 
+from .callbacks.iface_callbacks import (IfaceEventCallback,
+                                        InterfaceEventHandler)
 from .camera import Camera, CameraReg
 from .nodes import CategoryPtr, NodePtr, NodePtrReg
 from .schemas import FuncResult
@@ -37,6 +39,7 @@ class Iface:
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
         self._cam_reg = CameraReg(self.display_name)
+        self._iface_events: InterfaceEventHandler = InterfaceEventHandler(f'{self}')
 
     def __str__(self) -> str:
         return f'Iface {self.name}'
@@ -161,6 +164,8 @@ class Iface:
     def clear(self) -> None:
         self._cam_reg.clear()
         del self._cam_reg
+        self.unregister_events()
+        del self._iface_events
         del self._ptr
 
     def get_nodes_repr(self, nodes: Iterable[str] | None = None) -> str:
@@ -182,6 +187,33 @@ class Iface:
     def get_cam_by_serial_number(self, serial_number: str) -> Camera | None:
         self._update_cameras()
         return self._cam_reg.get(serial_number)
+
+    #FIXME: not working
+    def register_device_events(
+        self,
+        device_arrival_callback: IfaceEventCallback | None = None,
+        device_removal_callback: IfaceEventCallback | None = None
+    ) -> FuncResult:
+        if device_arrival_callback is not None:
+            self._iface_events.set_arr_callback(device_arrival_callback)
+        if device_removal_callback is not None:
+            self._iface_events.set_rm_callback(device_removal_callback)
+        try:
+            self._ptr.RegisterEventHandler(self._iface_events)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self}: Can\'t register device events. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def unregister_events(self) -> FuncResult:
+        try:
+            self._ptr.UnregisterEventHandler(self._iface_events)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self}: Can\'t unregister device events. {e}'
+            spincam_logger.warning(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
 
 
 class IfaceReg:

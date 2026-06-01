@@ -83,7 +83,7 @@ class Camera:
             return 'Unknown'
 
     @property
-    def nodemap(self) -> PySpin.INodeMap:
+    def nodemap(self) -> PySpin.INodeMap | None:
         try:
             if not self._ptr.IsInitialized():
                 raise PySpin.SpinnakerException('Camera not initialized.')
@@ -91,10 +91,10 @@ class Camera:
         except PySpin.SpinnakerException as e:
             msg: str = f'{self}: Can\'t get the NodeMap. {e}'
             spincam_logger.error(msg)
-            raise RuntimeError(msg)
+            return None
 
     @property
-    def tl_device_nodemap(self) -> PySpin.INodeMap:
+    def tl_device_nodemap(self) -> PySpin.INodeMap | None:
         try:
             if not self._ptr.IsInitialized():
                 raise PySpin.SpinnakerException('Camera not initialized.')
@@ -102,10 +102,10 @@ class Camera:
         except PySpin.SpinnakerException as e:
             msg: str = f'{self}: Can\'t get the TLDeviceNodeMap. {e}'
             spincam_logger.error(msg)
-            raise RuntimeError(msg)
+            return None
 
     @property
-    def tl_stream_nodemap(self) -> PySpin.INodeMap:
+    def tl_stream_nodemap(self) -> PySpin.INodeMap | None:
         try:
             if not self._ptr.IsInitialized():
                 raise PySpin.SpinnakerException('Camera not initialized.')
@@ -113,29 +113,35 @@ class Camera:
         except PySpin.SpinnakerException as e:
             msg: str = f'{self}: Can\'t get the TLStreamNodeMap. {e}'
             spincam_logger.error(msg)
-            raise RuntimeError(msg)
+            return None
 
     def _root_node_ptrs(self) -> dict[str, NodePtr]:
-        return {
-            'App.Root': CategoryPtr(
+        nodemap: PySpin.INodeMap | None = self.nodemap
+        tl_device_nodemap: PySpin.INodeMap | None = self.tl_device_nodemap
+        tl_stream_nodemap: PySpin.INodeMap | None = self.tl_stream_nodemap
+        result: dict[str, NodePtr] = {}
+        if nodemap is not None:
+            result['App.Root'] = CategoryPtr(
                 route= 'App.Root',
                 parent_name= str(self),
-                nodemap= self.nodemap,
-            ),
-            'Device.Root': CategoryPtr(
+                nodemap= nodemap,
+            )
+        if tl_device_nodemap is not None:
+            result['Device.Root'] = CategoryPtr(
                 route= 'Device.Root',
                 parent_name= str(self),
-                nodemap= self.tl_device_nodemap,
-            ),
-            'Stream.Root': CategoryPtr(
+                nodemap= tl_device_nodemap,
+            )
+        if tl_stream_nodemap is not None:
+            result['Stream.Root'] = CategoryPtr(
                 route= 'Stream.Root',
                 parent_name= str(self),
-                nodemap= self.tl_stream_nodemap,
+                nodemap= tl_stream_nodemap,
             )
-        }
+        return result
 
     def _create_nodemap(self) -> None:
-        root_node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
+        root_node_ptrs: dict[str, NodePtr] = self._node_ptrs.copy()
         for node_ptr in root_node_ptrs.values():
             new_nodes: dict[str, NodePtr] = node_ptr.get_subnodes()
             self._node_ptrs.update(new_nodes)
