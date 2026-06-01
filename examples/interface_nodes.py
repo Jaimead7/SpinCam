@@ -40,13 +40,15 @@ def main() -> None:
                 raise ValueError('Please select a valid id.')
             iface: Iface | None = sys.get_iface_by_id(iface_selected)
             if iface is None:
-                raise ValueError
+                raise ValueError(f'Error getting "{iface_selected}" interface.')
             tree: str = iface.get_nodes_repr()
             print(tree)
     except ValueError as e:
-        pass
+        print(e)
     except RuntimeError as e:
-        pass
+        print(e)
+    except KeyboardInterrupt:
+        print('\nStopping program...')
 
 
 if __name__ == '__main__':

@@ -28,23 +28,27 @@
 # ================================================================================
 
 
-from spincam import (get_available_cam_serial_numbers, get_cam_list_repr,
-                     get_camera)
+from spincam import Camera, get_cam_list_repr, get_sys
 
 
 def main() -> None:
-    print(get_cam_list_repr())
-    cam_selected: str = input('Select a camera by serial number: ')
-
-    if not cam_selected in get_available_cam_serial_numbers():
-        raise ValueError('Please select a valid serial number.')
-
     try:
-        with get_camera(cam_selected) as cam:
+        with get_sys() as sys:
+            print(get_cam_list_repr(sys.cameras))
+            cam_selected: str = input('Select a camera by serial number: ')
+            if cam_selected not in sys.cameras_serial_numbers:
+                raise ValueError('Please select a valid serial number.')
+            cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
+            if cam is None:
+                raise ValueError(f'Error getting "{cam_selected}" camera.')
             tree: str = cam.get_nodes_repr()
             print(tree)
     except ValueError as e:
         print(e)
+    except RuntimeError as e:
+        print(e)
+    except KeyboardInterrupt:
+        print('\nStopping program...')
 
 
 if __name__ == '__main__':

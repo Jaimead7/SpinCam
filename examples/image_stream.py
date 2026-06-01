@@ -42,31 +42,30 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import (get_available_cam_serial_numbers, get_cam_list_repr,
-                     get_camera)
+from spincam import Camera, get_cam_list_repr, get_sys
+
+nodes_default_values: dict[str, Any] = {
+    'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
+    'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
+    'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'OldestFirst',
+    'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
+    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
+    'App.Root.DigitalIOControl.TriggerMode': 'Off',
+}
 
 
 def main() -> None:
-    nodes_default_values: dict[str, Any] = {
-        'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
-        'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
-        'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'OldestFirst',
-        'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
-        'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
-        'App.Root.DigitalIOControl.TriggerMode': 'Off',
-    }
-
-    print(get_cam_list_repr())
-    cam_selected: str = input('Select a camera: ')
-
-    if not cam_selected in get_available_cam_serial_numbers():
-        raise ValueError('Please select a valid serial number.')
-    
-    cv2.namedWindow(cam_selected, cv2.WINDOW_NORMAL)
-
     try:
-        with get_camera(cam_selected) as cam:
-            print(repr(cam))
+        with get_sys() as sys:
+            print(get_cam_list_repr(sys.cameras))
+            cam_selected: str = input('Select a camera by serial number: ')
+            if cam_selected not in sys.cameras_serial_numbers:
+                raise ValueError('Please select a valid serial number.')
+            cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
+            if cam is None:
+                raise ValueError(f'Error getting "{cam_selected}" camera.')
+            window_name: str = f'Camera: {cam_selected}'
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
             cam.update_nodes_default_values(nodes_default_values).set_nodes_default_values()
             cam.start_acq()
             exit = False
@@ -75,7 +74,7 @@ def main() -> None:
                 if img is None:
                     exit = True
                     break
-                cv2.imshow(cam_selected, img)
+                cv2.imshow(window_name, img)
                 key: int = -1
                 while key == -1:
                     key = cv2.waitKey(1)
@@ -87,7 +86,10 @@ def main() -> None:
                     break
     except ValueError as e:
         print(e)
-
+    except RuntimeError as e:
+        print(e)
+    except KeyboardInterrupt:
+        print('\nStopping program...')
     cv2.destroyAllWindows()
 
 

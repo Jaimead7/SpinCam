@@ -19,28 +19,23 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Iterable
-from threading import Lock
+from collections.abc import Generator, Iterable
+from contextlib import contextmanager
 
 import PySpin
 
 from .callbacks.sys_callbacks import SysEventCallback, SysEventHandler
+from .camera import Camera
 from .interface import Iface, IfaceReg
 from .schemas import FuncResult
-from .utils.logs import spincam_logger
+from .utils.logs import Styles, spincam_logger
 
 
 class System:
     def __init__(self, sys: PySpin.System) -> None:
         self._sys: PySpin.System = sys
         self._iface_reg = IfaceReg()
-        self._cam_list: PySpin.CameraList =  self._sys.GetCameras()
         self._callbacks: SysEventHandler = SysEventHandler()
-
-    @property
-    def cam_list(self) -> PySpin.CameraList:
-        self._update_cams()
-        return self._cam_list
 
     @property
     def ifaces(self) -> Iterable[Iface]:
@@ -52,39 +47,62 @@ class System:
         self._update_ifaces()
         return self._iface_reg.ifaces.keys()
 
-    def clear(self) -> None:
-        self._iface_reg.clear()
-        del self._iface_reg
-        self._cam_list.Clear()
-        self.unregister_events()
-        del self._callbacks
-        self._sys.ReleaseInstance()
+    @property
+    def cameras(self) -> Iterable[Camera]:
+        cam_list: Iterable[Camera] = []
+        for iface in self.ifaces:
+            cam_list.extend(iface.cameras)
+        return cam_list
 
-    def _update_cams(self) -> None:
-        try:
-            self._cam_list = self._sys.GetCameras()
-        except PySpin.SpinnakerException as e:
-            msg: str = f'Can\'t update system cameras. {e}'
-            spincam_logger.warning(msg)
+    @property
+    def cameras_serial_numbers(self) -> Iterable[str]:
+        serial_numbers: Iterable[str] = []
+        for iface in self.ifaces:
+            serial_numbers.extend(iface.cameras_serial_numbers)
+        return serial_numbers
 
     def _update_ifaces(self) -> None:
         try:
             iface_list: PySpin.InterfaceList = self._sys.GetInterfaces()
             for iface in iface_list:
                 self._iface_reg.register(iface_ptr= iface)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t update system interfaces. {e}'
+            spincam_logger.warning(msg)
+        finally:
             try:
                 del iface  # type: ignore
             except NameError:
                 pass
-            iface_list.Clear()
-            del iface_list
-        except PySpin.SpinnakerException as e:
-            msg: str = f'Can\'t update system interfaces. {e}'
-            spincam_logger.warning(msg)
+            try:
+                iface_list.Clear()  # type: ignore
+            except (NameError, PySpin.SpinnakerException):
+                pass
+            try:
+                del iface_list  # type: ignore
+            except NameError:
+                pass
+
+    def clear(self) -> None:
+        self._iface_reg.clear()
+        del self._iface_reg
+        self.unregister_events()
+        del self._callbacks
+        self._sys.ReleaseInstance()
 
     def get_iface_by_id(self, id: str) -> Iface | None:
         self._update_ifaces()
         return self._iface_reg.get(id)
+
+    def get_cam_by_serial_number(self, serial_number: str) -> Camera | None:
+        for iface in self.ifaces:
+            cam: Camera | None = iface.get_cam_by_serial_number(serial_number)
+            if cam is None:
+                continue
+            return cam
+        msg: str = f'Camera "{serial_number}" not found.'
+        spincam_logger.warning(msg)
+        return None
 
     def register_iface_events(
         self,
@@ -111,3 +129,22 @@ class System:
             spincam_logger.warning(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS
+
+
+@contextmanager
+def get_sys() -> Generator[System, None, None]:
+    try:
+        sys: PySpin.System = PySpin.System.GetInstance()
+        system: System = System(sys)
+        yield system
+    finally:
+        try:
+            system.clear()  # type: ignore
+        except NameError:
+            pass
+        except PySpin.SpinnakerException:
+            msg: str = 'Can\'t clear system. Something still holds a reference.'
+            spincam_logger.error(msg)
+            raise RuntimeError(msg)
+        msg: str = f'PySpin system cleared.'
+        spincam_logger.debug(msg, Styles.SUCCEED)

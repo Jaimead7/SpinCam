@@ -19,7 +19,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Sequence
+from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
@@ -38,13 +38,8 @@ from .utils.timing import time_group
 
 class Camera:
     def __init__(self, ptr: PySpin.CameraPtr) -> None:
-        try:
-            self._ptr: PySpin.CameraPtr = ptr
-            self._ptr.Init()
-        except PySpin.SpinnakerException as e:
-            msg: str = f'Unable to init ptr "{self._ptr}".'
-            spincam_logger.error(msg)
-            raise ValueError(msg) from e
+        self._ptr: PySpin.CameraPtr = ptr
+        self.init()
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
         self._node_callback_reg: NodeCallbackReg = NodeCallbackReg(
@@ -159,7 +154,25 @@ class Camera:
             result += self._get_node_tree(child)
         return result
 
-    def get_nodes_repr(self, nodes: Sequence[str] | None = None) -> str:
+    def init(self) -> FuncResult:
+        try:
+            self._ptr.Init()
+            if not self._ptr.IsInitialized():
+                msg: str = 'Camera not initialized.'
+                raise PySpin.SpinnakerException(msg)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self}: Unable to init. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def clear(self) -> None:
+        self.stop_acq()
+        self._node_callback_reg.unregister_all()
+        self._ptr.DeInit()
+        del self._ptr
+
+    def get_nodes_repr(self, nodes: Iterable[str] | None = None) -> str:
         if nodes is None:
             nodes = tuple(self._root_node_ptrs().keys())
         result: str = f'\n{self}:'
@@ -218,12 +231,6 @@ class Camera:
             img_array: np.ndarray = img_res.GetNDArray()
             img_res.Release()
         return img_array
-
-    def clear(self) -> None:
-        self.stop_acq()
-        self._node_callback_reg.unregister_all()
-        self._ptr.DeInit()
-        del self._ptr
 
     def get_node_value(
         self,
@@ -303,3 +310,55 @@ class Camera:
             spincam_logger.error(msg)
             return FuncResult.ERROR
         return node_ptr.execute()
+
+
+class CameraReg:
+    def __init__(self, iface_name = 'Unknown') -> None:
+        self._iface_name: str = iface_name
+        self._cameras: dict[str, Camera] = {}
+
+    @property
+    def cameras(self) -> dict[str, Camera]:
+        return self._cameras
+
+    def clear(self) -> None:
+        for cam in self._cameras.values():
+            cam.clear()
+        try:
+            del cam  # type: ignore
+        except NameError:
+            pass
+        del self._cameras
+
+    def get(self, serial_number: str) -> Camera | None:
+        cam: Camera | None = self._cameras.get(serial_number, None)
+        if cam is None:
+            msg: str = f'{self._iface_name}: Camera "{serial_number}" not found.'
+            spincam_logger.warning(msg)
+        return cam
+
+    def register(self, cam_ptr: PySpin.CameraPtr) -> FuncResult:
+        cam: Camera = Camera(cam_ptr)
+        if cam.serial_number in self._cameras.keys():
+            del cam
+            return FuncResult.ERROR
+        self._cameras[cam.serial_number] = cam
+        return FuncResult.SUCCESS
+
+    def unregister(self, serial_number: str) -> FuncResult:
+        cam: Camera | None = self._cameras.pop(serial_number, None)
+        if cam is None:
+            msg: str = f'{self._iface_name}: Can\'t unregister camera "{serial_number}". Camera not found.'
+            spincam_logger.warning(msg)
+            return FuncResult.SUCCESS
+        cam.clear()
+        del cam
+        return FuncResult.SUCCESS
+
+
+def get_cam_list_repr(cameras: Iterable[Camera]) -> str:
+    cam_list_str = '\nCameras list:'
+    for cam in cameras:
+        cam_list_str += f'\n  • {cam}'
+    cam_list_str += '\n'
+    return cam_list_str

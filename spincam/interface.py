@@ -25,6 +25,7 @@ from typing import Any
 
 import PySpin
 
+from .camera import Camera, CameraReg
 from .nodes import CategoryPtr, NodePtr, NodePtrReg
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
@@ -35,6 +36,7 @@ class Iface:
         self._ptr: PySpin.InterfacePtr = ptr
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
+        self._cam_reg = CameraReg(self.display_name)
 
     def __str__(self) -> str:
         return f'Iface {self.name}'
@@ -95,6 +97,16 @@ class Iface:
             spincam_logger.error(msg)
             raise RuntimeError(msg)
 
+    @property
+    def cameras(self) -> Iterable[Camera]:
+        self._update_cameras()
+        return self._cam_reg.cameras.values()
+
+    @property
+    def cameras_serial_numbers(self) -> Iterable[str]:
+        self._update_cameras()
+        return self._cam_reg.cameras.keys()
+
     def _root_node_ptrs(self) -> dict[str, NodePtr]:
         return {
             'Transport.Root': CategoryPtr(
@@ -124,6 +136,33 @@ class Iface:
             result += self._get_node_tree(child)
         return result
 
+    def _update_cameras(self) -> None:
+        try:
+            cam_list: PySpin.CameraList = self._ptr.GetCameras()
+            for cam in cam_list:
+                self._cam_reg.register(cam_ptr= cam)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self}: Can\'t update cameras. {e}'
+            spincam_logger.warning(msg)
+        finally:
+            try:
+                del cam  # type: ignore
+            except NameError:
+                pass
+            try:
+                cam_list.Clear()  # type: ignore
+            except (NameError, PySpin.SpinnakerException):
+                pass
+            try:
+                del cam_list  # type: ignore
+            except NameError:
+                pass
+
+    def clear(self) -> None:
+        self._cam_reg.clear()
+        del self._cam_reg
+        del self._ptr
+
     def get_nodes_repr(self, nodes: Iterable[str] | None = None) -> str:
         if nodes is None:
             nodes = tuple(self._root_node_ptrs().keys())
@@ -140,8 +179,9 @@ class Iface:
             spincam_logger.error(msg)
         return result
 
-    def clear(self) -> None:
-        del self._ptr
+    def get_cam_by_serial_number(self, serial_number: str) -> Camera | None:
+        self._update_cameras()
+        return self._cam_reg.get(serial_number)
 
 
 class IfaceReg:
@@ -165,14 +205,12 @@ class IfaceReg:
         iface: Iface | None = self._ifaces.get(id, None)
         if iface is None:
             msg: str = f'Interface "{id}" not found.'
-            spincam_logger.error(msg)
-            return None
+            spincam_logger.warning(msg)
         return iface
 
     def register(self, iface_ptr: PySpin.InterfacePtr) -> FuncResult:
         iface: Iface = Iface(iface_ptr)
         if iface.id in self._ifaces.keys():
-            iface.clear()
             del iface
             return FuncResult.ERROR
         self._ifaces[iface.id] = iface
@@ -191,7 +229,7 @@ class IfaceReg:
 
 def get_iface_list_repr(ifaces: Iterable[Iface]) -> str:
     iface_list_str = '\nInterfaces list:'
-    for iface_name in ifaces:
-        iface_list_str += f'\n  • {iface_name}'
+    for iface in ifaces:
+        iface_list_str += f'\n  • {iface}'
     iface_list_str += '\n'
     return iface_list_str

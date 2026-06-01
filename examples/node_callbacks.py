@@ -44,9 +44,8 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import (FuncResult, NodeCallbackFunc, NodePtr,
-                     get_available_cam_serial_numbers, get_cam_list_repr,
-                     get_camera)
+from spincam import (Camera, FuncResult, NodeCallbackFunc, NodePtr,
+                     get_cam_list_repr, get_sys)
 
 
 def callback_func(node_ptr: NodePtr) -> FuncResult:
@@ -84,18 +83,17 @@ node_callbacks: dict[str, NodeCallbackFunc] = {
 }
 
 def main() -> None:
-    print(get_cam_list_repr())
-    cam_selected: str = input('Select a camera: ')
-
-    if not cam_selected in get_available_cam_serial_numbers():
-        raise ValueError('Please select a valid serial number.')
-
-    window_name: str = f'Camera: {cam_selected}'
-
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-
     try:
-        with get_camera(cam_selected) as cam:
+        with get_sys() as sys:
+            print(get_cam_list_repr(sys.cameras))
+            cam_selected: str = input('Select a camera by serial number: ')
+            if cam_selected not in sys.cameras_serial_numbers:
+                raise ValueError('Please select a valid serial number.')
+            cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
+            if cam is None:
+                raise ValueError(f'Error getting "{cam_selected}" camera.')
+            window_name: str = f'Camera: {cam_selected}'
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
             cam.update_nodes_default_values(nodes_default_values).set_nodes_default_values()
             cam.set_node_value(
                 'App.Root.deviceCounterAndTimerControl.counterMode',
@@ -134,7 +132,10 @@ def main() -> None:
                     break
     except ValueError as e:
         print(e)
-
+    except RuntimeError as e:
+        print(e)
+    except KeyboardInterrupt:
+        print('\nStopping program...')
     cv2.destroyAllWindows()
 
 
