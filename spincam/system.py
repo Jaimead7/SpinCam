@@ -37,7 +37,7 @@ class System:
     def __init__(self, sys: PySpin.System) -> None:
         self._sys: PySpin.System = sys
         self._iface_reg = IfaceReg()
-        self._sys_events: SysEventHandler = SysEventHandler()
+        self._sys_events: SysEventHandler = SysEventHandler(self)
         self._iface_events: InterfaceEventHandler = InterfaceEventHandler(f'{self}')
 
     def __str__(self) -> str:
@@ -116,6 +116,7 @@ class System:
         iface_arrival_callback: SysEventCallback | None = None,
         iface_removal_callback: SysEventCallback | None = None
     ) -> FuncResult:
+        self.unregister_sys_events()
         if iface_arrival_callback is not None:
             self._sys_events.set_arr_callback(iface_arrival_callback)
         if iface_removal_callback is not None:
@@ -133,6 +134,7 @@ class System:
         device_arrival_callback: IfaceEventCallback | None = None,
         device_removal_callback: IfaceEventCallback | None = None
     ) -> FuncResult:
+        self.unregister_iface_events()
         if device_arrival_callback is not None:
             self._iface_events.set_arr_callback(device_arrival_callback)
         if device_removal_callback is not None:
@@ -146,12 +148,20 @@ class System:
         return FuncResult.SUCCESS
 
     def unregister_events(self) -> FuncResult:
+        ret: FuncResult = self.unregister_sys_events()
+        ret &= self.unregister_iface_events()
+        return FuncResult.SUCCESS
+
+    def unregister_sys_events(self) -> FuncResult:
         try:
             self._sys.UnregisterEventHandler(self._sys_events)
         except PySpin.SpinnakerException as e:
             msg: str = f'Can\'t unregister system events. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def unregister_iface_events(self) -> FuncResult:
         try:
             self._sys.UnregisterEventHandler(self._iface_events)
         except PySpin.SpinnakerException as e:

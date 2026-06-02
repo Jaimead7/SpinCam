@@ -19,24 +19,33 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from __future__ import annotations
+
 import threading
 from collections.abc import Callable
-from typing import TypeAlias
+from typing import TYPE_CHECKING, Any, Protocol, TypeAlias
 
 import PySpin
 
 from ..interface import Iface
 from ..schemas import FuncResult
 
-SysEventCallback: TypeAlias = Callable[[Iface], FuncResult]
+if TYPE_CHECKING:
+    from ..system import System
+
+
+class SysEventCallback(Protocol):
+    def __call__(self, sys: System, iface: Iface) -> Any: ...
 
 
 class SysEventHandler(PySpin.SystemEventHandler):
     def __init__(
         self,
+        system: System,
         iface_arrival_callback: SysEventCallback | None = None,
         iface_removal_callback: SysEventCallback | None = None
     ) -> None:
+        self._sys: System = system
         if iface_arrival_callback is None:
             iface_arrival_callback = self._dummy_callback
         if iface_removal_callback is None:
@@ -46,7 +55,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
         super().__init__()
 
     @staticmethod
-    def _dummy_callback(iface: Iface) -> FuncResult:
+    def _dummy_callback(sys: System, iface: Iface) -> FuncResult:
         return FuncResult.SUCCESS
 
     def set_arr_callback(self, callback: SysEventCallback | None = None) -> None:
@@ -63,7 +72,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
         iface = Iface(ptr= pInterface)
         threading.Thread(
             target= self._arr_callback,
-            args=(iface,),
+            args=(self._sys, iface,),
             daemon= True
         ).start()
 
@@ -71,6 +80,6 @@ class SysEventHandler(PySpin.SystemEventHandler):
         iface = Iface(ptr= pInterface)
         threading.Thread(
             target= self._rm_callback,
-            args=(iface,),
+            args=(self._sys, iface,),
             daemon= True
         ).start()

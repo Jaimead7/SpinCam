@@ -31,7 +31,7 @@
 # ================================================================================
 
 
-from spincam import Camera, FuncResult, Iface, get_sys
+from spincam import Camera, FuncResult, Iface, System, get_sys
 
 
 def cam_arrival(cam: Camera) -> FuncResult:
@@ -42,16 +42,20 @@ def cam_removal(cam: Camera) -> FuncResult:
     print(f'"{cam.name}" removed.')
     return FuncResult.SUCCESS
 
-def iface_arrival(iface: Iface) -> FuncResult:
+def iface_arrival(sys: System, iface: Iface) -> FuncResult:
     print(f'"{iface.name}" connected.')
-    # # FIXME: not working
+    # # FIXME: not working with iface.register, use sys.register_iface instead
     # iface.register_device_events(
     #     device_arrival_callback= cam_arrival,
     #     device_removal_callback= cam_removal
     # )
+    sys.register_iface_events(
+        device_arrival_callback= cam_arrival,
+        device_removal_callback= cam_removal
+    )
     return FuncResult.SUCCESS
 
-def iface_removal(iface: Iface) -> FuncResult:
+def iface_removal(sys: System, iface: Iface) -> FuncResult:
     print(f'"{iface.name}" removed.')
     return FuncResult.SUCCESS
 
@@ -60,10 +64,6 @@ def main() -> None:
         system.register_sys_events(
             iface_arrival_callback= iface_arrival,
             iface_removal_callback= iface_removal,
-        )
-        system.register_iface_events(
-            device_arrival_callback= cam_arrival,
-            device_removal_callback= cam_removal
         )
         try:
             input('\nProgram running...\n')
