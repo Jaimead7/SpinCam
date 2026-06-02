@@ -18,10 +18,11 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import cached_property
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import PySpin
 
@@ -32,9 +33,17 @@ from .nodes import CategoryPtr, NodePtr, NodePtrReg
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 
+if TYPE_CHECKING:
+    from .system import System
+
 
 class Iface:
-    def __init__(self, ptr: PySpin.InterfacePtr) -> None:
+    def __init__(
+        self,
+        sys: System,
+        ptr: PySpin.InterfacePtr
+    ) -> None:
+        self._sys: System = sys
         self._ptr: PySpin.InterfacePtr = ptr
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
@@ -217,7 +226,8 @@ class Iface:
 
 
 class IfaceReg:
-    def __init__(self) -> None:
+    def __init__(self, sys: System) -> None:
+        self._sys: System = sys
         self._ifaces: dict[str, Iface] = {}
 
     @property
@@ -241,7 +251,7 @@ class IfaceReg:
         return iface
 
     def register(self, iface_ptr: PySpin.InterfacePtr) -> FuncResult:
-        iface: Iface = Iface(iface_ptr)
+        iface: Iface = Iface(sys= self._sys, ptr= iface_ptr)
         if iface.id in self._ifaces.keys():
             del iface
             return FuncResult.ERROR

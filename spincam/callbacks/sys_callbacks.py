@@ -22,8 +22,7 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Protocol, TypeAlias
+from typing import TYPE_CHECKING, Any, Protocol
 
 import PySpin
 
@@ -69,7 +68,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
         self._rm_callback = callback
 
     def OnInterfaceArrival(self, pInterface: PySpin.InterfacePtr) -> None:
-        iface = Iface(ptr= pInterface)
+        iface = Iface(sys= self._sys, ptr= pInterface)
         threading.Thread(
             target= self._arr_callback,
             args=(self._sys, iface,),
@@ -77,7 +76,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
         ).start()
 
     def OnInterfaceRemoval(self, pInterface: PySpin.InterfacePtr) -> None:
-        iface = Iface(ptr= pInterface)
+        iface = Iface(sys= self._sys, ptr= pInterface)
         threading.Thread(
             target= self._rm_callback,
             args=(self._sys, iface,),

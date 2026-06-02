@@ -36,7 +36,7 @@ from .utils.logs import Styles, spincam_logger
 class System:
     def __init__(self, sys: PySpin.System) -> None:
         self._sys: PySpin.System = sys
-        self._iface_reg = IfaceReg()
+        self._iface_reg = IfaceReg(self)
         self._sys_events: SysEventHandler = SysEventHandler(self)
         self._iface_events: InterfaceEventHandler = InterfaceEventHandler(f'{self}')
 
