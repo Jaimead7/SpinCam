@@ -206,10 +206,8 @@ class Iface:
         device_removal_callback: IfaceEventCallback | None = None
     ) -> FuncResult:
         self.unregister_events()
-        if device_arrival_callback is not None:
-            self._iface_events.set_arr_callback(device_arrival_callback)
-        if device_removal_callback is not None:
-            self._iface_events.set_rm_callback(device_removal_callback)
+        self._iface_events.set_arr_callback(device_arrival_callback)
+        self._iface_events.set_rm_callback(device_removal_callback)
         try:
             self._ptr.RegisterEventHandler(self._iface_events)
         except PySpin.SpinnakerException as e:
