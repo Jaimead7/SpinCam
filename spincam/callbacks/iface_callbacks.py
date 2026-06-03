@@ -57,6 +57,10 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         self._rm_callback: IfaceEventCallback = device_removal_callback
         super().__init__()
 
+    @property
+    def iface(self) -> Iface | None:
+        return self._sys.get_iface_by_id(self._iface_id)
+
     @staticmethod
     def _dummy_callback(iface: Iface, cam: Camera) -> FuncResult:
         return FuncResult.SUCCESS
@@ -72,16 +76,15 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         self._rm_callback = callback
 
     def OnDeviceArrival(self, pCamera: PySpin.CameraPtr) -> None:
-        iface: Iface | None = self._sys.get_iface_by_id(self._iface_id)
         try:
             cam = Camera(ptr= pCamera)
             threading.Thread(
                 target= self._arr_callback,
-                args=(iface, cam,),
+                args=(self.iface, cam,),
                 daemon= True
             ).start()
         except Exception as e:
-            msg: str = f'{iface}: Unable to execute OnDeviceArrival callback. {e}'
+            msg: str = f'{self.iface}: Unable to execute OnDeviceArrival callback. {e}'
             spincam_logger.error(msg)
         finally:
             try:
@@ -90,16 +93,15 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
                 pass
 
     def OnDeviceRemoval(self, pCamera: PySpin.CameraPtr) -> None:
-        iface: Iface | None = self._sys.get_iface_by_id(self._iface_id)
         try:
             cam = Camera(ptr= pCamera)
             threading.Thread(
                 target= self._rm_callback,
-                args=(iface, cam,),
+                args=(self.iface, cam,),
                 daemon= True
             ).start()
         except Exception as e:
-            msg: str = f'{iface}: Unable to execute OnDeviceRemoval callback. {e}'
+            msg: str = f'{self.iface}: Unable to execute OnDeviceRemoval callback. {e}'
             spincam_logger.error(msg)
         finally:
             try:

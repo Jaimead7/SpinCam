@@ -47,7 +47,7 @@ class Iface:
         self._ptr: PySpin.InterfacePtr = ptr
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
-        self._cam_reg = CameraReg(self.display_name)
+        self._cam_reg = CameraReg(self._sys, self.id)
         self._iface_events: InterfaceEventHandler = InterfaceEventHandler(
             sys= self._sys,
             iface_id= self.id

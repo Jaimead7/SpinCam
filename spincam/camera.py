@@ -19,8 +19,10 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from __future__ import annotations
+
 from collections.abc import Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import PySpin
@@ -34,6 +36,10 @@ from .nodes import CategoryPtr
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 from .utils.timing import time_group
+
+if TYPE_CHECKING:
+    from .interface import Iface
+    from .system import System
 
 
 class Camera:
@@ -319,13 +325,18 @@ class Camera:
 
 
 class CameraReg:
-    def __init__(self, iface_name = 'Unknown') -> None:
-        self._iface_name: str = iface_name
+    def __init__(self, sys: System, iface_id: str) -> None:
+        self._sys: System = sys
+        self._iface_id: str = iface_id
         self._cameras: dict[str, Camera] = {}
 
     @property
     def cameras(self) -> dict[str, Camera]:
         return self._cameras
+
+    @property
+    def iface(self) -> Iface | None:
+        return self._sys.get_iface_by_id(self._iface_id)
 
     def clear(self) -> None:
         for cam in self._cameras.values():
@@ -339,7 +350,7 @@ class CameraReg:
     def get(self, serial_number: str) -> Camera | None:
         cam: Camera | None = self._cameras.get(serial_number, None)
         if cam is None:
-            msg: str = f'{self._iface_name}: Camera "{serial_number}" not found.'
+            msg: str = f'{self.iface}: Camera "{serial_number}" not found.'
             spincam_logger.warning(msg)
         return cam
 
@@ -354,7 +365,7 @@ class CameraReg:
     def unregister(self, serial_number: str) -> FuncResult:
         cam: Camera | None = self._cameras.pop(serial_number, None)
         if cam is None:
-            msg: str = f'{self._iface_name}: Can\'t unregister camera "{serial_number}". Camera not found.'
+            msg: str = f'{self.iface}: Can\'t unregister camera "{serial_number}". Camera not found.'
             spincam_logger.warning(msg)
             return FuncResult.SUCCESS
         cam.clear()
