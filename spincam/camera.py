@@ -43,7 +43,9 @@ if TYPE_CHECKING:
 
 
 class Camera:
-    def __init__(self, ptr: PySpin.CameraPtr) -> None:
+    def __init__(self, sys: System, iface_id: str, ptr: PySpin.CameraPtr) -> None:
+        self._sys: System = sys
+        self._iface_id: str = iface_id
         self._ptr: PySpin.CameraPtr = ptr
         self.init()
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
@@ -328,42 +330,64 @@ class CameraReg:
     def __init__(self, sys: System, iface_id: str) -> None:
         self._sys: System = sys
         self._iface_id: str = iface_id
-        self._cameras: dict[str, Camera] = {}
+        self._cams: dict[str, Camera] = {}
 
     @property
     def cameras(self) -> dict[str, Camera]:
-        return self._cameras
+        return self._cams
 
     @property
     def iface(self) -> Iface | None:
         return self._sys.get_iface_by_id(self._iface_id)
 
     def clear(self) -> None:
-        for cam in self._cameras.values():
+        for cam in self._cams.values():
             cam.clear()
         try:
             del cam  # type: ignore
         except NameError:
             pass
-        del self._cameras
+        del self._cams
 
     def get(self, serial_number: str) -> Camera | None:
-        cam: Camera | None = self._cameras.get(serial_number, None)
+        cam: Camera | None = self._cams.get(serial_number, None)
         if cam is None:
             msg: str = f'{self.iface}: Camera "{serial_number}" not found.'
             spincam_logger.warning(msg)
         return cam
 
+    def update(self, cam_list: PySpin.CameraList) -> FuncResult:
+        current_cams: dict[str, Camera] = {
+            cam.serial_number: cam
+            for cam in [
+                Camera(sys= self._sys, iface_id= self._iface_id, ptr= cam_ptr)
+                for cam_ptr in cam_list
+            ]
+        }
+        to_rm: set[str] = set(self._cams.keys()) - set(current_cams.keys())
+        to_add: set[str] =  set(current_cams.keys()) - set(self._cams.keys())
+        ret: FuncResult = FuncResult.SUCCESS
+        for cam_serial_number in to_rm:
+            ret &= self.unregister(cam_serial_number)
+        for cam_serial_number in to_add:
+            self._cams[cam_serial_number] = current_cams[cam_serial_number]
+        del current_cams
+        return ret
+
     def register(self, cam_ptr: PySpin.CameraPtr) -> FuncResult:
-        cam: Camera = Camera(cam_ptr)
-        if cam.serial_number in self._cameras.keys():
+        cam: Camera = Camera(
+            sys= self._sys,
+            iface_id= self._iface_id,
+            ptr= cam_ptr
+        )
+        if cam.serial_number in self._cams.keys():
             del cam
             return FuncResult.ERROR
-        self._cameras[cam.serial_number] = cam
+        self._cams[cam.serial_number] = cam
         return FuncResult.SUCCESS
 
     def unregister(self, serial_number: str) -> FuncResult:
-        cam: Camera | None = self._cameras.pop(serial_number, None)
+        cam: Camera | None = self._cams.pop(serial_number, None)
         if cam is None:
             msg: str = f'{self.iface}: Can\'t unregister camera "{serial_number}". Camera not found.'
             spincam_logger.warning(msg)

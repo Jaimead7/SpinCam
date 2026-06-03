@@ -28,6 +28,7 @@ import PySpin
 
 from ..interface import Iface
 from ..schemas import FuncResult
+from ..utils.logs import spincam_logger
 
 if TYPE_CHECKING:
     from ..system import System
@@ -68,21 +69,42 @@ class SysEventHandler(PySpin.SystemEventHandler):
         self._rm_callback = callback
 
     def OnInterfaceArrival(self, pInterface: PySpin.InterfacePtr) -> None:
-        iface = Iface(sys= self._sys, ptr= pInterface)
-        sys_iface: Iface | None = self._sys.get_iface_by_id(iface.id)
-        if sys_iface is None:
-            return
-        threading.Thread(
-            target= self._arr_callback,
-            args=(self._sys, sys_iface,),
-            daemon= True
-        ).start()
+        try:
+            iface = Iface(sys= self._sys, ptr= pInterface)
+            sys_iface: Iface | None = self._sys.get_iface_by_id(iface.id)
+            if sys_iface is None:
+                msg: str = 'Error getting interface.'
+                raise ValueError(msg)
+            threading.Thread(
+                target= self._arr_callback,
+                args=(self._sys, sys_iface,),
+                daemon= True
+            ).start()
+        except Exception as e:
+            msg: str = f'{self}: Unable to execute OnInterfaceArrival callback. {e}'
+            spincam_logger.error(msg)
+        finally:
+            try:
+                iface.clear()  # type: ignore
+                del iface  # type: ignore
+            except NameError:
+                pass
 
     def OnInterfaceRemoval(self, pInterface: PySpin.InterfacePtr) -> None:
-        self._sys._update_ifaces()
-        iface = Iface(sys= self._sys, ptr= pInterface)
-        threading.Thread(
-            target= self._rm_callback,
-            args=(self._sys, iface,),
-            daemon= True
-        ).start()
+        try:
+            self._sys._update_ifaces()
+            iface = Iface(sys= self._sys, ptr= pInterface)
+            threading.Thread(
+                target= self._rm_callback,
+                args=(self._sys, iface,),
+                daemon= True
+            ).start()
+        except Exception as e:
+            msg: str = f'{self}: Unable to execute OnInterfaceArrival callback. {e}'
+            spincam_logger.error(msg)
+        finally:
+            try:
+                iface.clear()  # type: ignore
+                del iface  # type: ignore
+            except NameError:
+                pass

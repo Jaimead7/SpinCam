@@ -77,10 +77,18 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
 
     def OnDeviceArrival(self, pCamera: PySpin.CameraPtr) -> None:
         try:
-            cam = Camera(ptr= pCamera)
+            iface: Iface | None = self.iface
+            if iface is None:
+                msg: str = 'Error getting interface.'
+                raise ValueError(msg)
+            cam = Camera(sys= self._sys, iface_id= iface.id, ptr= pCamera)
+            iface_cam: Camera | None = iface.get_cam_by_serial_number(cam.serial_number)
+            if iface_cam is None:
+                msg: str = f'Error getting camera {cam.serial_number}.'
+                raise ValueError(msg)
             threading.Thread(
                 target= self._arr_callback,
-                args=(self.iface, cam,),
+                args=(iface, iface_cam,),
                 daemon= True
             ).start()
         except Exception as e:
@@ -89,15 +97,25 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         finally:
             try:
                 cam.clear()  # type: ignore
+                del cam  # type: ignore
             except NameError:
                 pass
 
     def OnDeviceRemoval(self, pCamera: PySpin.CameraPtr) -> None:
         try:
-            cam = Camera(ptr= pCamera)
+            iface: Iface | None = self.iface
+            if iface is None:
+                msg: str = 'Error getting interface.'
+                raise ValueError(msg)
+            iface.update_cameras()
+            cam = Camera(
+                sys= self._sys,
+                iface_id= self._iface_id,
+                ptr= pCamera
+            )
             threading.Thread(
                 target= self._rm_callback,
-                args=(self.iface, cam,),
+                args=(iface, cam,),
                 daemon= True
             ).start()
         except Exception as e:

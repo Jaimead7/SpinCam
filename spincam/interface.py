@@ -114,12 +114,12 @@ class Iface:
 
     @property
     def cameras(self) -> Iterable[Camera]:
-        self._update_cameras()
+        self.update_cameras()
         return self._cam_reg.cameras.values()
 
     @property
     def cameras_serial_numbers(self) -> Iterable[str]:
-        self._update_cameras()
+        self.update_cameras()
         return self._cam_reg.cameras.keys()
 
     def _root_node_ptrs(self) -> dict[str, NodePtr]:
@@ -151,19 +151,21 @@ class Iface:
             result += self._get_node_tree(child)
         return result
 
-    def _update_cameras(self) -> None:
+    def clear(self) -> None:
+        self._cam_reg.clear()
+        del self._cam_reg
+        self.unregister_events()
+        del self._iface_events
+        del self._ptr
+
+    def update_cameras(self) -> None:
         try:
             cam_list: PySpin.CameraList = self._ptr.GetCameras()
-            for cam in cam_list:
-                self._cam_reg.register(cam_ptr= cam)
+            self._cam_reg.update(cam_list)
         except PySpin.SpinnakerException as e:
             msg: str = f'{self}: Can\'t update cameras. {e}'
             spincam_logger.warning(msg)
         finally:
-            try:
-                del cam  # type: ignore
-            except NameError:
-                pass
             try:
                 cam_list.Clear()  # type: ignore
             except (NameError, PySpin.SpinnakerException):
@@ -172,13 +174,6 @@ class Iface:
                 del cam_list  # type: ignore
             except NameError:
                 pass
-
-    def clear(self) -> None:
-        self._cam_reg.clear()
-        del self._cam_reg
-        self.unregister_events()
-        del self._iface_events
-        del self._ptr
 
     def get_nodes_repr(self, nodes: Iterable[str] | None = None) -> str:
         if nodes is None:
@@ -197,7 +192,7 @@ class Iface:
         return result
 
     def get_cam_by_serial_number(self, serial_number: str) -> Camera | None:
-        self._update_cameras()
+        self.update_cameras()
         return self._cam_reg.get(serial_number)
 
     def register_device_events(
