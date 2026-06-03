@@ -53,7 +53,7 @@ class Camera:
         self._create_nodemap()
         self._node_callback_reg: NodeCallbackReg = NodeCallbackReg(
             sys= self._sys,
-            cam_serial_number= self.serial_number
+            parent_id= self.serial_number
         )
 
     def __str__(self) -> str:
@@ -303,14 +303,9 @@ class Camera:
         node_route: str,
         func: NodeCallbackFunc
     ) -> FuncResult:
-        node_ptr: NodePtr | None = self.get_node_ptr(node_route)
-        if node_ptr is None:
-            msg: str = f'{self}: Unable to register "{node_route}" node callback. Node not found.'
-            spincam_logger.error(msg)
-            return FuncResult.ERROR
         return self._node_callback_reg.register(
             func= func,
-            node_ptr= node_ptr
+            route= node_route
         )
 
     def unregister_node_callback(

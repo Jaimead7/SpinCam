@@ -31,11 +31,73 @@
 # ================================================================================
 
 
-from spincam import Camera, FuncResult, Iface, System, get_sys
+from random import randint
+from time import sleep, time
+from typing import Any
 
+import cv2
+import numpy as np
+
+from spincam import (Camera, FuncResult, Iface, NodeCallbackFunc, NodePtr,
+                     System, get_sys)
+
+
+def callback_func(node_ptr: NodePtr) -> FuncResult:
+    print(f'"{node_ptr.display_name}" node callback execution...')
+    wait_time: int = randint(1, 5)
+    start: float = time()
+    sleep(wait_time)
+    end: float = time()
+    print(f'"{node_ptr.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
+    return FuncResult.SUCCESS
+
+nodes_default_values: dict[str, Any] = {
+    'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
+    'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
+    'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
+    'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
+    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
+    'App.Root.DigitalIOControl.TriggerMode': 'On',
+    'App.Root.DigitalIOControl.TriggerSource': 'Software',
+    'App.Root.deviceEventControl.EventSelector': 'ValidFrameTrigger',
+    'App.Root.deviceEventControl.EventNotification': 'On'
+}
+
+node_callbacks: dict[str, NodeCallbackFunc] = {
+    'App.Root.deviceSensorControl.Gain': callback_func,
+    'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
+}
 
 def cam_arrival(iface: Iface, cam: Camera) -> FuncResult:
     print(f'{cam.name} connected to {iface}.')
+    try:
+        window_name: str = f'Camera: {cam}'
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cam.stop_acq()
+        cam.update_nodes_default_values(nodes_default_values).set_nodes_default_values()
+        for route, func in node_callbacks.items():
+            cam.register_node_callback(route, func)
+        cam.start_acq()
+        exit = False
+        while True:
+            print('Executing trigger...')
+            cam.execute_node('App.Root.DigitalIOControl.TriggerSoftware')
+            img: np.ndarray | None = cam.get_last_img()
+            if img is None:
+                exit = True
+                break
+            cv2.imshow(window_name, img)
+            key: int = -1
+            while key == -1:
+                key = cv2.waitKey(1)
+                if key == 27:
+                    break
+                elif key == 32:
+                    break
+            if key == 27 or exit:
+                break
+    finally:
+        cv2.destroyAllWindows()
     return FuncResult.SUCCESS
 
 def cam_removal(iface: Iface, cam: Camera) -> FuncResult:
