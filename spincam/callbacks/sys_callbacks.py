@@ -81,11 +81,8 @@ class SysEventHandler(PySpin.SystemEventHandler):
 
     def OnInterfaceRemoval(self, pInterface: PySpin.InterfacePtr) -> None:
         iface = Iface(sys= self._sys, ptr= pInterface)
-        sys_iface: Iface | None = self._sys.get_iface_by_id(iface.id)
-        if sys_iface is None:
-            return
         threading.Thread(
             target= self._rm_callback,
-            args=(self._sys, sys_iface,),
+            args=(self._sys, iface,),
             daemon= True
         ).start()

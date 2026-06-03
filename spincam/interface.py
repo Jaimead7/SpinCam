@@ -219,7 +219,7 @@ class Iface:
         try:
             self._ptr.UnregisterEventHandler(self._iface_events)
         except PySpin.SpinnakerException as e:
-            if e.errorcode not in (-1014,):
+            if e.errorcode not in (-1003, -1014,):
                 msg: str = f'{self}: Can\'t unregister device events. {e}'
                 spincam_logger.warning(msg)
                 return FuncResult.ERROR
@@ -250,6 +250,24 @@ class IfaceReg:
             msg: str = f'Interface "{id}" not found.'
             spincam_logger.warning(msg)
         return iface
+
+    def update(self, iface_list: PySpin.InterfaceList) -> FuncResult:
+        current_ifaces: dict[str, Iface] = {
+            iface.id: iface
+            for iface in [
+                Iface(sys= self._sys, ptr= iface_ptr)
+                for iface_ptr in iface_list
+            ]
+        }
+        to_rm: set[str] = set(self._ifaces.keys()) - set(current_ifaces.keys())
+        to_add: set[str] = set(current_ifaces.keys()) - set(self._ifaces.keys())
+        ret: FuncResult = FuncResult.SUCCESS
+        for iface_id in to_rm:
+            ret &= self.unregister(iface_id)
+        for iface_id in to_add:
+            self._ifaces[iface_id] = current_ifaces[iface_id]
+        del current_ifaces
+        return ret
 
     def register(self, iface_ptr: PySpin.InterfacePtr) -> FuncResult:
         iface: Iface = Iface(sys= self._sys, ptr= iface_ptr)
