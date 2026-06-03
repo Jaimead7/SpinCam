@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import threading
+from functools import cached_property
 from typing import TYPE_CHECKING, Protocol
 
 import PySpin
@@ -57,7 +58,7 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         self._rm_callback: IfaceEventCallback = device_removal_callback
         super().__init__()
 
-    @property
+    @cached_property
     def iface(self) -> Iface | None:
         return self._sys.get_iface_by_id(self._iface_id)
 
@@ -107,7 +108,7 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
             if iface is None:
                 msg: str = 'Error getting interface.'
                 raise ValueError(msg)
-            iface.update_cameras()
+            iface.update_cams()
             cam = Camera(
                 sys= self._sys,
                 iface_id= self._iface_id,

@@ -52,17 +52,17 @@ class System:
         return self._iface_reg.ifaces.keys()
 
     @property
-    def cameras(self) -> Iterable[Camera]:
+    def cams(self) -> Iterable[Camera]:
         cam_list: Iterable[Camera] = []
         for iface in self.ifaces:
-            cam_list.extend(iface.cameras)
+            cam_list.extend(iface.cams)
         return cam_list
 
     @property
-    def cameras_serial_numbers(self) -> Iterable[str]:
+    def cams_serial_numbers(self) -> Iterable[str]:
         serial_numbers: Iterable[str] = []
         for iface in self.ifaces:
-            serial_numbers.extend(iface.cameras_serial_numbers)
+            serial_numbers.extend(iface.cams_serial_numbers)
         return serial_numbers
 
     def _update_ifaces(self) -> None:

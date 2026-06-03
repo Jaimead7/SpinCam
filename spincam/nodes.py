@@ -72,11 +72,11 @@ class NodePtr(Generic[T]):
     def parent_route(self) -> str:
         return '.'.join(self.route.split('.')[:-1]).strip()
 
-    @property
+    @cached_property
     def route(self) -> str:
         return self._route
 
-    @property
+    @cached_property
     def parent_name(self) -> str:
         return self._parent_name.strip()
 
@@ -89,7 +89,7 @@ class NodePtr(Generic[T]):
         self._update_status()
         return self._status
 
-    @property
+    @cached_property
     def display_name(self) -> str:
         try:
             display_name: str = self.node.GetDisplayName()

@@ -113,14 +113,14 @@ class Iface:
             raise RuntimeError(msg)
 
     @property
-    def cameras(self) -> Iterable[Camera]:
-        self.update_cameras()
-        return self._cam_reg.cameras.values()
+    def cams(self) -> Iterable[Camera]:
+        self.update_cams()
+        return self._cam_reg.cams.values()
 
     @property
-    def cameras_serial_numbers(self) -> Iterable[str]:
-        self.update_cameras()
-        return self._cam_reg.cameras.keys()
+    def cams_serial_numbers(self) -> Iterable[str]:
+        self.update_cams()
+        return self._cam_reg.cams.keys()
 
     def _root_node_ptrs(self) -> dict[str, NodePtr]:
         return {
@@ -158,7 +158,7 @@ class Iface:
         del self._iface_events
         del self._ptr
 
-    def update_cameras(self) -> None:
+    def update_cams(self) -> None:
         try:
             cam_list: PySpin.CameraList = self._ptr.GetCameras()
             self._cam_reg.update(cam_list)
@@ -192,7 +192,7 @@ class Iface:
         return result
 
     def get_cam_by_serial_number(self, serial_number: str) -> Camera | None:
-        self.update_cameras()
+        self.update_cams()
         return self._cam_reg.get(serial_number)
 
     def register_device_events(

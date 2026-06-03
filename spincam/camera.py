@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -51,7 +52,8 @@ class Camera:
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
         self._node_callback_reg: NodeCallbackReg = NodeCallbackReg(
-            cam_name= str(self)
+            sys= self._sys,
+            cam_serial_number= str(self)
         )
 
     def __str__(self) -> str:
@@ -60,11 +62,11 @@ class Camera:
     def __repr__(self) -> str:
         return self.get_nodes_repr(['Device.Root.DeviceInformation'])
 
-    @property
+    @cached_property
     def name(self) -> str:
         return f'{self.model_name} ({self.serial_number})'
 
-    @property
+    @cached_property
     def model_name(self) -> str:
         try:
             tl_iface: PySpin.TransportLayerInterface = self._ptr.TLDevice
@@ -77,7 +79,7 @@ class Camera:
             spincam_logger.warning(msg)
             return 'Unknown'
 
-    @property
+    @cached_property
     def serial_number(self) -> str:
         try:
             tl_iface: PySpin.TransportLayerInterface = self._ptr.TLDevice
@@ -333,7 +335,7 @@ class CameraReg:
         self._cams: dict[str, Camera] = {}
 
     @property
-    def cameras(self) -> dict[str, Camera]:
+    def cams(self) -> dict[str, Camera]:
         return self._cams
 
     @property
@@ -397,9 +399,9 @@ class CameraReg:
         return FuncResult.SUCCESS
 
 
-def get_cam_list_repr(cameras: Iterable[Camera]) -> str:
+def get_cam_list_repr(cams: Iterable[Camera]) -> str:
     cam_list_str = '\nCameras list:'
-    for cam in cameras:
+    for cam in cams:
         cam_list_str += f'\n  • {cam}'
     cam_list_str += '\n'
     return cam_list_str

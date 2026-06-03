@@ -57,9 +57,9 @@ nodes_default_values: dict[str, Any] = {
 def main() -> None:
     try:
         with get_sys() as sys:
-            print(get_cam_list_repr(sys.cameras))
+            print(get_cam_list_repr(sys.cams))
             cam_selected: str = input('Select a camera by serial number: ')
-            if cam_selected not in sys.cameras_serial_numbers:
+            if cam_selected not in sys.cams_serial_numbers:
                 raise ValueError('Please select a valid serial number.')
             cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
             if cam is None:
