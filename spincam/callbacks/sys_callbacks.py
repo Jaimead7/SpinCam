@@ -22,20 +22,19 @@
 from __future__ import annotations
 
 import threading
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import PySpin
 
 from ..interface import Iface
 from ..schemas import FuncResult
-from ..utils.logs import spincam_logger
 
 if TYPE_CHECKING:
     from ..system import System
 
 
 class SysEventCallback(Protocol):
-    def __call__(self, sys: System, iface: Iface) -> Any: ...
+    def __call__(self, sys: System, iface: Iface) -> FuncResult: ...
 
 
 class SysEventHandler(PySpin.SystemEventHandler):
@@ -80,6 +79,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
         ).start()
 
     def OnInterfaceRemoval(self, pInterface: PySpin.InterfacePtr) -> None:
+        self._sys._update_ifaces()
         iface = Iface(sys= self._sys, ptr= pInterface)
         threading.Thread(
             target= self._rm_callback,

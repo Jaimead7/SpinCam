@@ -19,9 +19,10 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from __future__ import annotations
+
 import threading
-from collections.abc import Callable
-from typing import TypeAlias
+from typing import TYPE_CHECKING, Protocol
 
 import PySpin
 
@@ -29,17 +30,25 @@ from ..camera import Camera
 from ..schemas import FuncResult
 from ..utils.logs import spincam_logger
 
-IfaceEventCallback: TypeAlias = Callable[[Camera], FuncResult]
+if TYPE_CHECKING:
+    from ..interface import Iface
+    from ..system import System
+
+
+class IfaceEventCallback(Protocol):
+    def __call__(self, iface: Iface, cam: Camera) -> FuncResult: ...
 
 
 class InterfaceEventHandler(PySpin.InterfaceEventHandler):
     def __init__(
         self,
-        parent: str,
+        sys: System,
+        iface_id: str,
         device_arrival_callback: IfaceEventCallback | None = None,
         device_removal_callback: IfaceEventCallback | None = None
     ) -> None:
-        self._parent: str = parent
+        self._sys: System = sys
+        self._iface_id: str = iface_id
         if device_arrival_callback is None:
             device_arrival_callback = self._dummy_callback
         if device_removal_callback is None:
@@ -49,7 +58,7 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         super().__init__()
 
     @staticmethod
-    def _dummy_callback(cam: Camera) -> FuncResult:
+    def _dummy_callback(iface: Iface, cam: Camera) -> FuncResult:
         return FuncResult.SUCCESS
 
     def set_arr_callback(self, callback: IfaceEventCallback | None = None) -> None:
@@ -63,15 +72,16 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         self._rm_callback = callback
 
     def OnDeviceArrival(self, pCamera: PySpin.CameraPtr) -> None:
+        iface: Iface | None = self._sys.get_iface_by_id(self._iface_id)
         try:
             cam = Camera(ptr= pCamera)
             threading.Thread(
                 target= self._arr_callback,
-                args=(cam,),
+                args=(iface, cam,),
                 daemon= True
             ).start()
         except Exception as e:
-            msg: str = f'{self._parent}: Unable to execute OnDeviceArrival callback. {e}'
+            msg: str = f'{iface}: Unable to execute OnDeviceArrival callback. {e}'
             spincam_logger.error(msg)
         finally:
             try:
@@ -80,15 +90,16 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
                 pass
 
     def OnDeviceRemoval(self, pCamera: PySpin.CameraPtr) -> None:
+        iface: Iface | None = self._sys.get_iface_by_id(self._iface_id)
         try:
             cam = Camera(ptr= pCamera)
             threading.Thread(
                 target= self._rm_callback,
-                args=(cam,),
+                args=(iface, cam,),
                 daemon= True
             ).start()
         except Exception as e:
-            msg: str = f'{self._parent}: Unable to execute OnDeviceRemoval callback. {e}'
+            msg: str = f'{iface}: Unable to execute OnDeviceRemoval callback. {e}'
             spincam_logger.error(msg)
         finally:
             try:

@@ -48,7 +48,10 @@ class Iface:
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
         self._cam_reg = CameraReg(self.display_name)
-        self._iface_events: InterfaceEventHandler = InterfaceEventHandler(f'{self}')
+        self._iface_events: InterfaceEventHandler = InterfaceEventHandler(
+            sys= self._sys,
+            iface_id= self.id
+        )
 
     def __str__(self) -> str:
         return f'Interface {self.name}'

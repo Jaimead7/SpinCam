@@ -23,8 +23,8 @@
 # This example shows how to use the system callbacks.
 # 
 # The callback API use threading for "async" behaviour.
-# Callbacks are created as daemons, so data may be lost when the programm
-# is closed.
+# Callbacks are created as daemons, so callbacks may not finish when the
+# programm is closed.
 # 
 # To exit press Ctr+C.
 # 
@@ -34,16 +34,16 @@
 from spincam import Camera, FuncResult, Iface, System, get_sys
 
 
-def cam_arrival(cam: Camera) -> FuncResult:
-    print(f'"{cam.name}" connected.')
+def cam_arrival(iface: Iface, cam: Camera) -> FuncResult:
+    print(f'{cam.name} connected to {iface}.')
     return FuncResult.SUCCESS
 
-def cam_removal(cam: Camera) -> FuncResult:
-    print(f'"{cam.name}" removed.')
+def cam_removal(iface: Iface, cam: Camera) -> FuncResult:
+    print(f'{cam.name} removed from {iface}.')
     return FuncResult.SUCCESS
 
 def iface_arrival(sys: System, iface: Iface) -> FuncResult:
-    print(f'"{iface.name}" connected.')
+    print(f'{iface.name} connected.')
     iface.register_device_events(
         device_arrival_callback= cam_arrival,
         device_removal_callback= cam_removal
@@ -51,7 +51,7 @@ def iface_arrival(sys: System, iface: Iface) -> FuncResult:
     return FuncResult.SUCCESS
 
 def iface_removal(sys: System, iface: Iface) -> FuncResult:
-    print(f'"{iface.name}" removed.')
+    print(f'{iface.name} removed.')
     return FuncResult.SUCCESS
 
 def main() -> None:
