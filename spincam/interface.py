@@ -51,7 +51,7 @@ class Iface:
         self._iface_events: InterfaceEventHandler = InterfaceEventHandler(f'{self}')
 
     def __str__(self) -> str:
-        return f'Iface {self.name}'
+        return f'Interface {self.name}'
 
     def __repr__(self) -> str:
         return self.get_nodes_repr()
@@ -197,12 +197,12 @@ class Iface:
         self._update_cameras()
         return self._cam_reg.get(serial_number)
 
-    #FIXME: not working
     def register_device_events(
         self,
         device_arrival_callback: IfaceEventCallback | None = None,
         device_removal_callback: IfaceEventCallback | None = None
     ) -> FuncResult:
+        self.unregister_events()
         if device_arrival_callback is not None:
             self._iface_events.set_arr_callback(device_arrival_callback)
         if device_removal_callback is not None:
@@ -219,9 +219,10 @@ class Iface:
         try:
             self._ptr.UnregisterEventHandler(self._iface_events)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self}: Can\'t unregister device events. {e}'
-            spincam_logger.warning(msg)
-            return FuncResult.ERROR
+            if e.errorcode not in (-1014,):
+                msg: str = f'{self}: Can\'t unregister device events. {e}'
+                spincam_logger.warning(msg)
+                return FuncResult.ERROR
         return FuncResult.SUCCESS
 
 

@@ -28,6 +28,7 @@ import PySpin
 
 from ..interface import Iface
 from ..schemas import FuncResult
+from ..utils.logs import spincam_logger
 
 if TYPE_CHECKING:
     from ..system import System
@@ -69,16 +70,22 @@ class SysEventHandler(PySpin.SystemEventHandler):
 
     def OnInterfaceArrival(self, pInterface: PySpin.InterfacePtr) -> None:
         iface = Iface(sys= self._sys, ptr= pInterface)
+        sys_iface: Iface | None = self._sys.get_iface_by_id(iface.id)
+        if sys_iface is None:
+            return
         threading.Thread(
             target= self._arr_callback,
-            args=(self._sys, iface,),
+            args=(self._sys, sys_iface,),
             daemon= True
         ).start()
 
     def OnInterfaceRemoval(self, pInterface: PySpin.InterfacePtr) -> None:
         iface = Iface(sys= self._sys, ptr= pInterface)
+        sys_iface: Iface | None = self._sys.get_iface_by_id(iface.id)
+        if sys_iface is None:
+            return
         threading.Thread(
             target= self._rm_callback,
-            args=(self._sys, iface,),
+            args=(self._sys, sys_iface,),
             daemon= True
         ).start()

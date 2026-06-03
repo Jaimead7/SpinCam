@@ -156,18 +156,20 @@ class System:
         try:
             self._sys.UnregisterEventHandler(self._sys_events)
         except PySpin.SpinnakerException as e:
-            msg: str = f'Can\'t unregister system events. {e}'
-            spincam_logger.warning(msg)
-            return FuncResult.ERROR
+            if e.errorcode not in (-1014,):
+                msg: str = f'Can\'t unregister system events. {e}'
+                spincam_logger.warning(msg)
+                return FuncResult.ERROR
         return FuncResult.SUCCESS
 
     def unregister_iface_events(self) -> FuncResult:
         try:
             self._sys.UnregisterEventHandler(self._iface_events)
         except PySpin.SpinnakerException as e:
-            msg: str = f'Can\'t unregister interface events. {e}'
-            spincam_logger.warning(msg)
-            return FuncResult.ERROR
+            if e.errorcode not in (-1014,):
+                msg: str = f'Can\'t unregister interface events. {e}'
+                spincam_logger.warning(msg)
+                return FuncResult.ERROR
         return FuncResult.SUCCESS
 
 

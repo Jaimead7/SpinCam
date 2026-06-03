@@ -44,12 +44,7 @@ def cam_removal(cam: Camera) -> FuncResult:
 
 def iface_arrival(sys: System, iface: Iface) -> FuncResult:
     print(f'"{iface.name}" connected.')
-    # # FIXME: not working with iface.register, use sys.register_iface instead
-    # iface.register_device_events(
-    #     device_arrival_callback= cam_arrival,
-    #     device_removal_callback= cam_removal
-    # )
-    sys.register_iface_events(
+    iface.register_device_events(
         device_arrival_callback= cam_arrival,
         device_removal_callback= cam_removal
     )
