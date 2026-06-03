@@ -70,8 +70,9 @@ class Iface:
             iface_type: Any = raw_node.GetPrincipalInterfaceType()
             NODE_PTR_TYPE: type[NodePtr] = NodePtrReg.get(iface_type)
             interface_id_node: NodePtr = NODE_PTR_TYPE(
+                sys= self._sys,
+                parent_id= 'Unknown',
                 route= 'Transport.Root.InterfaceInformation.InterfaceID',
-                parent_name= 'Unknown',
                 nodemap= self.nodemap
             )
             ret: FuncResult
@@ -90,8 +91,9 @@ class Iface:
             iface_type: Any = raw_node.GetPrincipalInterfaceType()
             NODE_PTR_TYPE: type[NodePtr] = NodePtrReg.get(iface_type)
             display_name_node: NodePtr = NODE_PTR_TYPE(
+                sys= self._sys,
+                parent_id= 'Unknown',
                 route= 'Transport.Root.InterfaceInformation.InterfaceDisplayName',
-                parent_name= 'Unknown',
                 nodemap= self.nodemap
             )
             ret: FuncResult
@@ -125,8 +127,9 @@ class Iface:
     def _root_node_ptrs(self) -> dict[str, NodePtr]:
         return {
             'Transport.Root': CategoryPtr(
+                sys= self._sys,
+                parent_id= self.id,
                 route= 'Transport.Root',
-                parent_name= str(self),
                 nodemap= self.nodemap
             )
         }
@@ -145,7 +148,7 @@ class Iface:
         child_nodes_names: list[str] = [
             key
             for key, value in self._node_ptrs.items()
-            if value.parent_route == node_name
+            if value.parent_node_route == node_name
         ]
         for child in child_nodes_names:
             result += self._get_node_tree(child)

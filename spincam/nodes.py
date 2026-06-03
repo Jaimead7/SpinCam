@@ -19,15 +19,23 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from __future__ import annotations
+
 from collections.abc import Callable, Sequence
 from functools import cached_property
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 import PySpin
 from typing_extensions import Self
 
 from .schemas import NODE_PTR_TYPES, FuncResult, GenericPtr, NodeStatus
 from .utils.logs import spincam_logger
+
+if TYPE_CHECKING:
+    from .camera import Camera
+    from .interface import Iface
+    from .system import System
+
 
 T = TypeVar('T', bound= GenericPtr)
 
@@ -39,13 +47,15 @@ class NodePtr(Generic[T]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
+        self._sys: System = sys
+        self._parent_id: str = parent_id
         self._route: str = route
-        self._parent_name: str = parent_name
         self._nodemap: PySpin.INodeMap = nodemap
         self._status: NodeStatus = NodeStatus.UNKNOWN
         self.default_val: Any = default_val
@@ -61,24 +71,28 @@ class NodePtr(Generic[T]):
 
     def __repr__(self) -> str:
         result: str = f'{self.__class__.__name__}'
-        result += f'(route="{self.route}", parent="{self.parent_name}", status="{self.status}" default="{self.default_val}")'
+        result += f'(route="{self.route}", camera="{self.parent}", status="{self.status}" default="{self.default_val}")'
         return result
+
+    @cached_property
+    def parent(self) -> Iface | Camera | None:
+        ret: Iface | Camera | None = None
+        ret = self._sys.get_cam_by_serial_number(self._parent_id)
+        if ret is None:
+            ret = self._sys.get_iface_by_id(self._parent_id)
+        return ret
 
     @cached_property
     def name(self) -> str:
         return self.route.split('.')[-1].strip()
 
     @cached_property
-    def parent_route(self) -> str:
+    def parent_node_route(self) -> str:
         return '.'.join(self.route.split('.')[:-1]).strip()
 
     @cached_property
     def route(self) -> str:
         return self._route
-
-    @cached_property
-    def parent_name(self) -> str:
-        return self._parent_name.strip()
 
     @property
     def nodemap(self) -> PySpin.INodeMap:
@@ -94,10 +108,10 @@ class NodePtr(Generic[T]):
         try:
             display_name: str = self.node.GetDisplayName()
             if display_name == 'Root':
-                display_name = self.parent_route
+                display_name = self.parent_node_route
             return display_name
         except PySpin.SpinnakerException:
-            msg: str = f'{self.parent_name}: Unable to get display name for "{self.name}" node.'
+            msg: str = f'{self.parent}: Unable to get display name for "{self.name}" node.'
             spincam_logger.error(msg)
             return self.name
 
@@ -115,36 +129,36 @@ class NodePtr(Generic[T]):
 
     # CategoryPtr
     def get_subnodes(self) -> dict[str, Self]:
-        msg: str = f'{self.parent_name}: "{self.__class__.__name__}" nodes don\'t have subnodes.'
+        msg: str = f'{self.parent}: "{self.__class__.__name__}" nodes don\'t have subnodes.'
         spincam_logger.warning(msg)
         return {}
 
     def get_features(self) -> tuple[FuncResult, Sequence[PySpin.IValue]]:
-        msg: str = f'{self.parent_name}: Features not defined for "{self.__class__.__name__}" nodes.'
+        msg: str = f'{self.parent}: Features not defined for "{self.__class__.__name__}" nodes.'
         spincam_logger.warning(msg)
         return FuncResult.ERROR, []
 
     def get_childrens(self) -> tuple[FuncResult, Sequence[PySpin.INode]]:
-        msg: str = f'{self.parent_name}: Childrens not defined for "{self.__class__.__name__}" nodes.'
+        msg: str = f'{self.parent}: Childrens not defined for "{self.__class__.__name__}" nodes.'
         spincam_logger.warning(msg)
         return FuncResult.ERROR, []
 
     # Value Ptr's
     def get_value(self) -> tuple[FuncResult, Any]:
-        msg: str = f'{self.parent_name}: Value not defined for "{self.__class__.__name__}" nodes.'
+        msg: str = f'{self.parent}: Value not defined for "{self.__class__.__name__}" nodes.'
         spincam_logger.warning(msg)
         return FuncResult.ERROR, None
 
     def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
         if value is None:
             return FuncResult.ERROR, None
-        msg: str = f'{self.parent_name}: Value not defined for "{self.__class__.__name__}" nodes.'
+        msg: str = f'{self.parent}: Value not defined for "{self.__class__.__name__}" nodes.'
         spincam_logger.warning(msg)
         return FuncResult.ERROR, None
 
     # Command Ptr's
     def execute(self) -> FuncResult:
-        msg: str = f'{self.parent_name}: Execute not defined for "{self.__class__.__name__}" nodes.'
+        msg: str = f'{self.parent}: Execute not defined for "{self.__class__.__name__}" nodes.'
         spincam_logger.warning(msg)
         return FuncResult.ERROR
 
@@ -208,14 +222,16 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -230,7 +246,7 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
         try:
             features: Sequence[PySpin.IValue] = self.node.GetFeatures()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Can\'t extract features from {self.name} node. {e}'
+            msg: str = f'{self.parent}: Can\'t extract features from {self.name} node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, []
         return FuncResult.SUCCESS, features
@@ -239,7 +255,7 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
         try:
             childrens: Sequence[PySpin.IValue] = self.node.GetChildren()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Can\'t get childrens from {self.name} node. {e}'
+            msg: str = f'{self.parent}: Can\'t get childrens from {self.name} node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, []
         return FuncResult.SUCCESS, childrens
@@ -259,8 +275,9 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
             except ValueError:
                 continue
             node_ptr: NodePtr = NODE_PTR_TYPE(
+                sys= self._sys,
+                parent_id= self._parent_id,
                 route= f'{self.route}.{name}',
-                parent_name= self.parent_name,
                 nodemap= self.nodemap,
             )
             result[node_ptr.route] = node_ptr
@@ -277,14 +294,16 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -302,7 +321,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
                 raise PySpin.SpinnakerException('It is not a readeble node.')
             return node_opt.GetValue()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Couldn\'t get "{value}" option from "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Couldn\'t get "{value}" option from "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return -1
 
@@ -318,7 +337,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
 
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self.status.can_read():
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node. It is not a read node.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         value: str = self.node.GetCurrentEntry().GetSymbolic()
@@ -332,22 +351,22 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         try:
             int_value: int = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         try:
             self.node.SetIntValue(int_value)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable to set "{value}" to "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{value}" to "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         ret: FuncResult
         ret, value = self.get_value()
-        msg: str = f'{self.parent_name}: "{self.name}" set to "{value}".'
+        msg: str = f'{self.parent}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
         return FuncResult.SUCCESS, value
 
@@ -359,16 +378,18 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
-        default_val: Any = None
+        default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
-            default_val= default_val,
+            default_val= default_val
         )
         raw_node: PySpin.INode = nodemap.GetNode(self.name)
         self.node = PySpin.CBooleanPtr(raw_node)
@@ -384,14 +405,14 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
 
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self.status.can_read():
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node. It is not a read node.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         value: bool = self.node.GetValue()
         try:
             value = bool(value)
         except (ValueError, TypeError):
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to bool.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to bool.'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         return FuncResult.SUCCESS, value
@@ -404,22 +425,22 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         try:
             self.node.SetValue(value)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable to set "{value}" to "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{value}" to "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         ret: FuncResult
         ret, value = self.get_value()
-        msg: str = f'{self.parent_name}: "{self.name}" set to "{value}".'
+        msg: str = f'{self.parent}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
         return FuncResult.SUCCESS, value
 
@@ -431,14 +452,16 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -456,28 +479,28 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
             min_val: int = self.node.GetMin()
             max_val: int = self.node.GetMax()
             if value < min_val:
-                msg: str = f'{self.parent_name}: "{value}" is lower than "{self.name}" min value. "{min_val}" will be used.'
+                msg: str = f'{self.parent}: "{value}" is lower than "{self.name}" min value. "{min_val}" will be used.'
                 spincam_logger.warning(msg)
                 value = min_val
             if value > max_val:
-                msg: str = f'{self.parent_name}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
+                msg: str = f'{self.parent}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
                 spincam_logger.warning(msg)
                 value = max_val
         except PySpin.SpinnakerException:
-            msg: str = f'{self.parent_name}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
+            msg: str = f'{self.parent}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
             spincam_logger.warning(msg)
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self.status.can_read():
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node. It is not a read node.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         value: int = self.node.GetValue()
         try:
             value = int(value)
         except (ValueError, TypeError):
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to int.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to int.'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         return FuncResult.SUCCESS, value
@@ -490,22 +513,22 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         try:
             self.node.SetValue(value)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable to set "{value}" to "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{value}" to "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         ret: FuncResult
         ret, value = self.get_value()
-        msg: str = f'{self.parent_name}: "{self.name}" set to "{value}".'
+        msg: str = f'{self.parent}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
         return FuncResult.SUCCESS, value
 
@@ -517,14 +540,16 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -542,28 +567,28 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
             min_val: int = self.node.GetMin()
             max_val: int = self.node.GetMax()
             if value < min_val:
-                msg: str = f'{self.parent_name}: "{value}" is lower than "{self.name}" min value. "{min_val}" will be used.'
+                msg: str = f'{self.parent}: "{value}" is lower than "{self.name}" min value. "{min_val}" will be used.'
                 spincam_logger.warning(msg)
                 value = min_val
             if value > max_val:
-                msg: str = f'{self.parent_name}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
+                msg: str = f'{self.parent}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
                 spincam_logger.warning(msg)
                 value = max_val
         except PySpin.SpinnakerException:
-            msg: str = f'{self.parent_name}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
+            msg: str = f'{self.parent}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
             spincam_logger.warning(msg)
         return value
 
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self.status.can_read():
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node. It is not a read node.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         value: float = self.node.GetValue()
         try:
             value = float(value)
         except (ValueError, TypeError):
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to float.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to float.'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         return FuncResult.SUCCESS, value
@@ -576,22 +601,22 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         try:
             self.node.SetValue(value)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable to set "{value}" to "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{value}" to "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         ret: FuncResult
         ret, value = self.get_value()
-        msg: str = f'{self.parent_name}: "{self.name}" set to "{value}".'
+        msg: str = f'{self.parent}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
         return FuncResult.SUCCESS, value
 
@@ -603,14 +628,16 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -628,14 +655,14 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
 
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self.status.can_read():
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node. It is not a read node.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         value: str = self.node.GetValue()
         try:
             value = str(value)
         except (ValueError, TypeError):
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to str.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to str.'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         return FuncResult.SUCCESS, value
@@ -648,22 +675,22 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         try:
             self.node.SetValue(value)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable to set "{value}" to "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{value}" to "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         ret: FuncResult
         ret, value = self.get_value()
-        msg: str = f'{self.parent_name}: "{self.name}" set to "{value}".'
+        msg: str = f'{self.parent}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
         return FuncResult.SUCCESS, value
 
@@ -675,14 +702,16 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -695,13 +724,13 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
 
     def execute(self) -> FuncResult:
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to execute "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to execute "{self.name}" node. It is not a write node.'
             spincam_logger.error(msg)
             return FuncResult.ERROR
         try:
             self.node.Execute()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable execute "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable execute "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS
@@ -714,14 +743,16 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
     def __init__(
         self,
         *,
+        sys: System,
+        parent_id: str,
         route: str,
-        parent_name: str,
         nodemap: PySpin.INodeMap,
         default_val: Any = None,
     ) -> None:
         super().__init__(
+            sys= sys,
+            parent_id= parent_id,
             route= route,
-            parent_name= parent_name,
             nodemap= nodemap,
             default_val= default_val
         )
@@ -749,12 +780,12 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
 
     def get_value(self) -> tuple[FuncResult, Any]:
         if not self.status.can_read():
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node. It is not a read node.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node. It is not a read node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         value: bytearray = self.node.Get(self.length, True, True)
         if not isinstance(value, bytearray):
-            msg: str = f'{self.parent_name}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to bytearray.'
+            msg: str = f'{self.parent}: Unable to get "{self.name}" node value. Can\'t convert {type(value)} to bytearray.'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         return FuncResult.SUCCESS, value
@@ -767,21 +798,21 @@ class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
         try:
             value = self._validate_value(value)
         except ValueError as e:
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. {e}'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         if not self.status.can_write():
-            msg: str = f'{self.parent_name}: Unable to set "{self.name}" node. It is not a write node.'
+            msg: str = f'{self.parent}: Unable to set "{self.name}" node. It is not a write node.'
             spincam_logger.warning(msg)
             return FuncResult.ERROR, None
         try:
             self.node.Set(value)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self.parent_name}: Unable to set "{value}" to "{self.name}" node. {e}'
+            msg: str = f'{self.parent}: Unable to set "{value}" to "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR, None
         ret: FuncResult
         ret, value = self.get_value()
-        msg: str = f'{self.parent_name}: "{self.name}" set to "{value}".'
+        msg: str = f'{self.parent}: "{self.name}" set to "{value}".'
         spincam_logger.info(msg)
         return FuncResult.SUCCESS, value

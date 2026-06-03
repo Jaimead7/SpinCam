@@ -53,7 +53,7 @@ class Camera:
         self._create_nodemap()
         self._node_callback_reg: NodeCallbackReg = NodeCallbackReg(
             sys= self._sys,
-            cam_serial_number= str(self)
+            cam_serial_number= self.serial_number
         )
 
     def __str__(self) -> str:
@@ -132,20 +132,23 @@ class Camera:
         result: dict[str, NodePtr] = {}
         if nodemap is not None:
             result['App.Root'] = CategoryPtr(
+                sys= self._sys,
+                parent_id= self.serial_number,
                 route= 'App.Root',
-                parent_name= str(self),
                 nodemap= nodemap,
             )
         if tl_device_nodemap is not None:
             result['Device.Root'] = CategoryPtr(
+                sys= self._sys,
+                parent_id= self.serial_number,
                 route= 'Device.Root',
-                parent_name= str(self),
                 nodemap= tl_device_nodemap,
             )
         if tl_stream_nodemap is not None:
             result['Stream.Root'] = CategoryPtr(
+                sys= self._sys,
+                parent_id= self.serial_number,
                 route= 'Stream.Root',
-                parent_name= str(self),
                 nodemap= tl_stream_nodemap,
             )
         return result
@@ -164,7 +167,7 @@ class Camera:
         child_nodes_names: list[str] = [
             key
             for key, value in self._node_ptrs.items()
-            if value.parent_route == node_name
+            if value.parent_node_route == node_name
         ]
         for child in child_nodes_names:
             result += self._get_node_tree(child)
@@ -353,9 +356,6 @@ class CameraReg:
 
     def get(self, serial_number: str) -> Camera | None:
         cam: Camera | None = self._cams.get(serial_number, None)
-        if cam is None:
-            msg: str = f'{self.iface}: Camera "{serial_number}" not found.'
-            spincam_logger.warning(msg)
         return cam
 
     def update(self, cam_list: PySpin.CameraList) -> FuncResult:
