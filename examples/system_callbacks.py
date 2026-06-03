@@ -60,6 +60,10 @@ def main() -> None:
             iface_arrival_callback= iface_arrival,
             iface_removal_callback= iface_removal,
         )
+        system.register_iface_events(
+            device_arrival_callback= cam_arrival,
+            device_removal_callback= cam_removal
+        )
         try:
             input('\nProgram running...\n')
         except KeyboardInterrupt:
