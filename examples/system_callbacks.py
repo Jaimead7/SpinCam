@@ -74,7 +74,8 @@ def cam_arrival(iface: Iface, cam: Camera) -> FuncResult:
         window_name: str = f'Camera: {cam}'
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cam.stop_acq()
-        cam.update_nodes_default_values(nodes_default_values).set_nodes_default_values()
+        cam.update_nodes_default_values(nodes_default_values)
+        cam.set_nodes_default_values()
         for route, func in node_callbacks.items():
             cam.register_node_callback(route, func)
         cam.start_acq()
@@ -106,7 +107,7 @@ def cam_removal(iface: Iface, cam: Camera) -> FuncResult:
 
 def iface_arrival(sys: System, iface: Iface) -> FuncResult:
     print(f'{iface.name} connected.')
-    iface.register_device_events(
+    iface.register_iface_events(
         device_arrival_callback= cam_arrival,
         device_removal_callback= cam_removal
     )

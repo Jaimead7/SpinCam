@@ -94,7 +94,8 @@ def main() -> None:
                 raise ValueError(f'Error getting "{cam_selected}" camera.')
             window_name: str = f'Camera: {cam_selected}'
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cam.update_nodes_default_values(nodes_default_values).set_nodes_default_values()
+            cam.update_nodes_default_values(nodes_default_values)
+            cam.set_nodes_default_values()
             cam.set_node_value(
                 'App.Root.deviceCounterAndTimerControl.counterMode',
                 'Active'

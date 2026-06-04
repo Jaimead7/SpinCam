@@ -279,24 +279,30 @@ class Camera:
     def update_nodes_default_values(
         self,
         default_values: dict[str, Any]
-    ) -> Self:
+    ) -> FuncResult:
         if not isinstance(default_values, dict):
             msg: str = f'{self}: Invalid node data. Expected "dict", got "{type(default_values)}".'
             spincam_logger.warning(msg)
-            return self
+            return FuncResult.ERROR
+        fun_res: FuncResult = FuncResult.SUCCESS
         for route, default_val in default_values.items():
             current_node: NodePtr | None = self._node_ptrs.get(str(route), None)
             if current_node is None:
                 msg: str = f'{self}: Can\'t find "{route}" in the camera nodes.'
                 spincam_logger.error(msg)
+                fun_res &= FuncResult.ERROR
                 continue
             current_node.default_val = default_val
-        return self
+        return fun_res
 
-    def set_nodes_default_values(self) -> Self:
+    def set_nodes_default_values(self) -> FuncResult:
+        fun_res: FuncResult = FuncResult.SUCCESS
         for node_ptr in self._node_ptrs.values():
-            node_ptr.set_value()
-        return self
+            ret: FuncResult
+            res: Any
+            ret, res = node_ptr.set_value()
+            fun_res &= ret
+        return fun_res
 
     def register_node_callback(
         self,
