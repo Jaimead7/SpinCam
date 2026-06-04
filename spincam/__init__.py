@@ -22,7 +22,7 @@
 from .callbacks.node_callbacks import NodeCallbackFunc
 from .camera import Camera, get_cam_list_repr
 from .interface import Iface, get_iface_list_repr
-from .nodes import NodePtr, NodePtrReg
+from .nodes import NodePtr, NodePtrTypes
 from .schemas import FuncResult, NodeStatus
 from .system import System, get_sys
 from .utils.logs import spincam_logger

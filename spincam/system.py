@@ -123,15 +123,19 @@ class System:
 
     def register_iface_events(
         self,
+        ifaces_ids: Iterable[str] | None = None,
         device_arrival_callback: IfaceEventCallback | None = None,
         device_removal_callback: IfaceEventCallback | None = None
     ) -> FuncResult:
+        if ifaces_ids is None:
+            ifaces_ids = self.ifaces_ids
         ret: FuncResult = FuncResult.SUCCESS
         for iface in self.ifaces:
-            ret &= iface.register_device_events(
-                device_arrival_callback= device_arrival_callback,
-                device_removal_callback= device_removal_callback
-            )
+            if iface.id in ifaces_ids:
+                ret &= iface.register_iface_events(
+                    device_arrival_callback= device_arrival_callback,
+                    device_removal_callback= device_removal_callback
+                )
         return ret
 
     def unregister_events(self) -> FuncResult:
@@ -149,10 +153,16 @@ class System:
                 return FuncResult.ERROR
         return FuncResult.SUCCESS
 
-    def unregister_iface_events(self) -> FuncResult:
+    def unregister_iface_events(
+        self,
+        ifaces_ids: Iterable[str] | None = None
+    ) -> FuncResult:
+        if ifaces_ids is None:
+            ifaces_ids = self.ifaces_ids
         ret: FuncResult = FuncResult.SUCCESS
         for iface in self.ifaces:
-            ret &= iface.unregister_events()
+            if iface.id in ifaces_ids:
+                ret &= iface.unregister_events()
         return ret
 
 

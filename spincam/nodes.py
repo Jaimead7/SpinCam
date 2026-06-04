@@ -23,18 +23,24 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Protocol, TypeVar
 
 import PySpin
 from typing_extensions import Self
 
-from .schemas import NODE_PTR_TYPES, FuncResult, GenericPtr, NodeStatus
+from .schemas import NODE_PTR_TYPES, FuncResult, NodeStatus
 from .utils.logs import spincam_logger
 
 if TYPE_CHECKING:
     from .camera import Camera
     from .interface import Iface
     from .system import System
+
+
+class GenericPtr(Protocol):
+    def __init__(self, *args) -> None: ...
+    def GetDisplayName(self) -> str: ...
+    def GetNode(self) -> PySpin.INode: ...
 
 
 T = TypeVar('T', bound= GenericPtr)
@@ -163,7 +169,7 @@ class NodePtr(Generic[T]):
         return FuncResult.ERROR
 
 
-class NodePtrReg:
+class NodePtrTypes:
     _ptrs: ClassVar[dict[str, type[NodePtr]]] = {}
 
     def __new__(cls) -> Self:
@@ -215,7 +221,7 @@ class NodePtrReg:
         cls._ptrs.clear()
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.CATEGORY.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.CATEGORY.value)
 class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
     PYSPIN_CLS = PySpin.CCategoryPtr
 
@@ -271,7 +277,7 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
             name: str = child.GetName()
             iface_type: Any = child.GetPrincipalInterfaceType()
             try:
-                NODE_PTR_TYPE: type[NodePtr] = NodePtrReg.get(iface_type)
+                NODE_PTR_TYPE: type[NodePtr] = NodePtrTypes.get(iface_type)
             except ValueError:
                 continue
             node_ptr: NodePtr = NODE_PTR_TYPE(
@@ -287,7 +293,7 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
         return result
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.ENUM.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.ENUM.value)
 class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
     PYSPIN_CLS = PySpin.CEnumerationPtr
 
@@ -371,7 +377,7 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.BOOL.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.BOOL.value)
 class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
     PYSPIN_CLS = PySpin.CBooleanPtr
 
@@ -445,7 +451,7 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.INT.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.INT.value)
 class IntPtr(NodePtr[PySpin.CIntegerPtr]):
     PYSPIN_CLS = PySpin.CIntegerPtr
 
@@ -533,7 +539,7 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.FLOAT.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.FLOAT.value)
 class FloatPtr(NodePtr[PySpin.CFloatPtr]):
     PYSPIN_CLS = PySpin.CFloatPtr
 
@@ -621,7 +627,7 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.STRING.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.STRING.value)
 class StrPtr(NodePtr[PySpin.CStringPtr]):
     PYSPIN_CLS = PySpin.CStringPtr
 
@@ -695,7 +701,7 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.COMMAND.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.COMMAND.value)
 class CommandPtr(NodePtr[PySpin.CCommandPtr]):
     PYSPIN_CLS = PySpin.CCommandPtr
 
@@ -736,7 +742,7 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
         return FuncResult.SUCCESS
 
 
-@NodePtrReg.register(NODE_PTR_TYPES.REGISTER.value)
+@NodePtrTypes.register(NODE_PTR_TYPES.REGISTER.value)
 class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
     PYSPIN_CLS = PySpin.CRegisterPtr
 

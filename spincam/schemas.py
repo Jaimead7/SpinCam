@@ -45,12 +45,6 @@ class FuncResult(IntEnum):
         return self.__and__(other)
 
 
-class GenericPtr(Protocol):
-    def __init__(self, *args) -> None: ...
-    def GetDisplayName(self) -> str: ...
-    def GetNode(self) -> PySpin.INode: ...
-
-
 class NodeStatus(IntEnum):
     UNKNOWN = 0
     R = 1

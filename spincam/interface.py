@@ -26,10 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 import PySpin
 
-from .callbacks.iface_callbacks import (IfaceEventCallback,
-                                        InterfaceEventHandler)
+from .callbacks.iface_callbacks import IfaceEventCallback, IfaceEventHandler
 from .camera import Camera, CameraReg
-from .nodes import CategoryPtr, NodePtr, NodePtrReg
+from .nodes import CategoryPtr, NodePtr, NodePtrTypes
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 
@@ -48,7 +47,7 @@ class Iface:
         self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
         self._create_nodemap()
         self._cam_reg = CameraReg(self._sys, self.id)
-        self._iface_events: InterfaceEventHandler = InterfaceEventHandler(
+        self._iface_events: IfaceEventHandler = IfaceEventHandler(
             sys= self._sys,
             iface_id= self.id
         )
@@ -68,7 +67,7 @@ class Iface:
         try:
             raw_node: PySpin.INode = self.nodemap.GetNode('InterfaceID')
             iface_type: Any = raw_node.GetPrincipalInterfaceType()
-            NODE_PTR_TYPE: type[NodePtr] = NodePtrReg.get(iface_type)
+            NODE_PTR_TYPE: type[NodePtr] = NodePtrTypes.get(iface_type)
             interface_id_node: NodePtr = NODE_PTR_TYPE(
                 sys= self._sys,
                 parent_id= 'Unknown',
@@ -89,7 +88,7 @@ class Iface:
         try:
             raw_node: PySpin.INode = self.nodemap.GetNode('InterfaceDisplayName')
             iface_type: Any = raw_node.GetPrincipalInterfaceType()
-            NODE_PTR_TYPE: type[NodePtr] = NodePtrReg.get(iface_type)
+            NODE_PTR_TYPE: type[NodePtr] = NodePtrTypes.get(iface_type)
             display_name_node: NodePtr = NODE_PTR_TYPE(
                 sys= self._sys,
                 parent_id= 'Unknown',
@@ -198,7 +197,7 @@ class Iface:
         self.update_cams()
         return self._cam_reg.get(serial_number)
 
-    def register_device_events(
+    def register_iface_events(
         self,
         device_arrival_callback: IfaceEventCallback | None = None,
         device_removal_callback: IfaceEventCallback | None = None

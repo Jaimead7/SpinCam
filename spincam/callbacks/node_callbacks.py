@@ -22,9 +22,8 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
 from functools import cached_property
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Protocol
 
 import PySpin
 
@@ -38,7 +37,13 @@ if TYPE_CHECKING:
     from ..system import System
 
 
-NodeCallbackFunc: TypeAlias = Callable[[NodePtr], FuncResult]
+class NodeCallbackFunc(Protocol):
+    def __call__(
+        self,
+        sys: System,
+        parent: Iface | Camera | None,
+        node: NodePtr
+    ) -> FuncResult: ...
 
 
 class NodeCallback(PySpin.NodeCallback):
@@ -47,12 +52,12 @@ class NodeCallback(PySpin.NodeCallback):
         sys: System,
         parent_id: str,
         route: str,
-        func: NodeCallbackFunc,
+        callback: NodeCallbackFunc,
     ) -> None:
         self._sys: System = sys
         self._parent_id: str = parent_id
-        self._func = func
         self._route: str = route
+        self._callback: NodeCallbackFunc = callback
         super().__init__()
 
     @cached_property
@@ -74,8 +79,8 @@ class NodeCallback(PySpin.NodeCallback):
                 msg: str = f'Error getting node {self._route} from {self._parent_id}.'
                 raise ValueError(msg)
             threading.Thread(
-                target= self._func,
-                args=(parent_node,),
+                target= self._callback,
+                args=(self._sys, parent, parent_node,),
                 daemon= True
             ).start()
         except Exception as e:
@@ -127,7 +132,7 @@ class NodeCallbackReg:
     def callbacks(self) -> dict[str, NodeCallback]:
         return self._callbacks
 
-    def register(self, func: NodeCallbackFunc, route: str) -> FuncResult:
+    def register(self, route: str, callback: NodeCallbackFunc) -> FuncResult:
         if route in self._callbacks.keys():
             msg: str = f'{self.parent}: Callback for "{route}" has already been registered. It will be overwritten.'
             spincam_logger.warning(msg)
@@ -136,7 +141,7 @@ class NodeCallbackReg:
             sys= self._sys,
             parent_id= self._parent_id,
             route= route,
-            func= func,
+            callback= callback,
         )
         return self._callbacks[route].register()
 

@@ -37,10 +37,10 @@ if TYPE_CHECKING:
 
 
 class IfaceEventCallback(Protocol):
-    def __call__(self, iface: Iface, cam: Camera) -> FuncResult: ...
+    def __call__(self, sys: System, iface: Iface, cam: Camera) -> FuncResult: ...
 
 
-class InterfaceEventHandler(PySpin.InterfaceEventHandler):
+class IfaceEventHandler(PySpin.InterfaceEventHandler):
     def __init__(
         self,
         sys: System,
@@ -63,7 +63,7 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
         return self._sys.get_iface_by_id(self._iface_id)
 
     @staticmethod
-    def _dummy_callback(iface: Iface, cam: Camera) -> FuncResult:
+    def _dummy_callback(sys: System, iface: Iface, cam: Camera) -> FuncResult:
         return FuncResult.SUCCESS
 
     def set_arr_callback(self, callback: IfaceEventCallback | None = None) -> None:
@@ -89,7 +89,7 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
                 raise ValueError(msg)
             threading.Thread(
                 target= self._arr_callback,
-                args=(iface, iface_cam,),
+                args=(self._sys, iface, iface_cam,),
                 daemon= True
             ).start()
         except Exception as e:
@@ -116,7 +116,7 @@ class InterfaceEventHandler(PySpin.InterfaceEventHandler):
             )
             threading.Thread(
                 target= self._rm_callback,
-                args=(iface, cam,),
+                args=(self._sys, iface, cam,),
                 daemon= True
             ).start()
         except Exception as e:

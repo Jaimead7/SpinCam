@@ -21,6 +21,12 @@
 # ================================================================================
 # 
 # This example shows how to use the system callbacks.
+# The example reacts to interface and cameras connections and disconnections.
+# On camera connections it open's a new window with a camera stream.
+# The cammera can be controlled with:
+#   • Esc to stop the stream.
+#   • SpaceBar to capture new image.
+# Camera nodes will generate callback messages.
 # 
 # The callback API use threading for "async" behaviour.
 # Callbacks are created as daemons, so callbacks may not finish when the
@@ -42,13 +48,17 @@ from spincam import (Camera, FuncResult, Iface, NodeCallbackFunc, NodePtr,
                      System, get_sys)
 
 
-def callback_func(node_ptr: NodePtr) -> FuncResult:
-    print(f'"{node_ptr.display_name}" node callback execution...')
+def callback_func(
+    sys: System,
+    parent: Iface | Camera | None,
+    node: NodePtr
+) -> FuncResult:
+    print(f'"{node.display_name}" node callback execution...')
     wait_time: int = randint(1, 5)
     start: float = time()
     sleep(wait_time)
     end: float = time()
-    print(f'"{node_ptr.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
+    print(f'"{node.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
     return FuncResult.SUCCESS
 
 nodes_default_values: dict[str, Any] = {
@@ -68,7 +78,7 @@ node_callbacks: dict[str, NodeCallbackFunc] = {
     'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
 }
 
-def cam_arrival(iface: Iface, cam: Camera) -> FuncResult:
+def cam_arrival(sys: System, iface: Iface, cam: Camera) -> FuncResult:
     print(f'{cam.name} connected to {iface}.')
     try:
         window_name: str = f'Camera: {cam}'
@@ -104,7 +114,7 @@ def cam_arrival(iface: Iface, cam: Camera) -> FuncResult:
         cv2.destroyAllWindows()
     return FuncResult.SUCCESS
 
-def cam_removal(iface: Iface, cam: Camera) -> FuncResult:
+def cam_removal(sys: System, iface: Iface, cam: Camera) -> FuncResult:
     print(f'{cam.name} removed from {iface}.')
     return FuncResult.SUCCESS
 

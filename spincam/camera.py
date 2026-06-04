@@ -312,8 +312,8 @@ class Camera:
         callback: NodeCallbackFunc
     ) -> FuncResult:
         return self._node_callback_reg.register(
-            func= callback,
-            route= route
+            route= route,
+            callback= callback
         )
 
     def unregister_node_callback(self, route: str) -> FuncResult:
