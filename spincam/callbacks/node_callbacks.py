@@ -38,12 +38,7 @@ if TYPE_CHECKING:
 
 
 class NodeCallbackFunc(Protocol):
-    def __call__(
-        self,
-        sys: System,
-        parent: Iface | Camera | None,
-        node: NodePtr
-    ) -> FuncResult: ...
+    def __call__(self, node: NodePtr) -> FuncResult: ...
 
 
 class NodeCallback(PySpin.NodeCallback):
@@ -80,7 +75,7 @@ class NodeCallback(PySpin.NodeCallback):
                 raise ValueError(msg)
             threading.Thread(
                 target= self._callback,
-                args=(self._sys, parent, parent_node,),
+                args=(parent_node,),
                 daemon= True
             ).start()
         except Exception as e:

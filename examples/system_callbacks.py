@@ -45,20 +45,16 @@ import cv2
 import numpy as np
 
 from spincam import (Camera, FuncResult, Iface, NodeCallbackFunc, NodePtr,
-                     System, get_sys)
+                     get_sys)
 
 
-def callback_func(
-    sys: System,
-    parent: Iface | Camera | None,
-    node: NodePtr
-) -> FuncResult:
-    print(f'"{node.display_name}" node callback execution...')
+def callback_func(node: NodePtr) -> FuncResult:
+    print(f'{node.parent}: "{node.display_name}" node callback execution...')
     wait_time: int = randint(1, 5)
     start: float = time()
     sleep(wait_time)
     end: float = time()
-    print(f'"{node.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
+    print(f'{node.parent}: "{node.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
     return FuncResult.SUCCESS
 
 nodes_default_values: dict[str, Any] = {
@@ -68,7 +64,7 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
     'App.Root.DigitalIOControl.TriggerMode': 'On',
-    'App.Root.DigitalIOControl.TriggerSource': 'Software',
+    'App.Root.DigitalIOControl.TriggerSource': 'Line1',
     'App.Root.deviceEventControl.EventSelector': 'ValidFrameTrigger',
     'App.Root.deviceEventControl.EventNotification': 'On'
 }
@@ -78,8 +74,8 @@ node_callbacks: dict[str, NodeCallbackFunc] = {
     'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
 }
 
-def cam_arrival(sys: System, iface: Iface, cam: Camera) -> FuncResult:
-    print(f'{cam.name} connected to {iface}.')
+def cam_arrival(cam: Camera) -> FuncResult:
+    print(f'{cam.name} connected to {cam.iface}.')
     try:
         window_name: str = f'Camera: {cam}'
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
@@ -114,11 +110,11 @@ def cam_arrival(sys: System, iface: Iface, cam: Camera) -> FuncResult:
         cv2.destroyAllWindows()
     return FuncResult.SUCCESS
 
-def cam_removal(sys: System, iface: Iface, cam: Camera) -> FuncResult:
-    print(f'{cam.name} removed from {iface}.')
+def cam_removal(cam: Camera) -> FuncResult:
+    print(f'{cam.name} removed from {cam.iface}.')
     return FuncResult.SUCCESS
 
-def iface_arrival(sys: System, iface: Iface) -> FuncResult:
+def iface_arrival(iface: Iface) -> FuncResult:
     print(f'{iface.name} connected.')
     iface.register_iface_events(
         device_arrival_callback= cam_arrival,
@@ -126,20 +122,23 @@ def iface_arrival(sys: System, iface: Iface) -> FuncResult:
     )
     return FuncResult.SUCCESS
 
-def iface_removal(sys: System, iface: Iface) -> FuncResult:
+def iface_removal(iface: Iface) -> FuncResult:
     print(f'{iface.name} removed.')
     return FuncResult.SUCCESS
 
 def main() -> None:
     with get_sys() as system:
-        system.register_sys_events(
+        system.register_events(
             iface_arrival_callback= iface_arrival,
             iface_removal_callback= iface_removal,
         )
-        system.register_iface_events(
-            device_arrival_callback= cam_arrival,
-            device_removal_callback= cam_removal
-        )
+        for iface in system.ifaces:
+            iface.register_iface_events(
+                device_arrival_callback= cam_arrival,
+                device_removal_callback= cam_removal
+            )
+        for cam in system.cams:
+            cam_arrival(cam)
         try:
             input('\nProgram running...\n')
         except KeyboardInterrupt:

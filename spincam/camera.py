@@ -27,12 +27,10 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import PySpin
-from typing_extensions import Self
 
 from spincam.nodes import NodePtr
 
-from .callbacks.node_callbacks import (NodeCallback, NodeCallbackFunc,
-                                       NodeCallbackReg)
+from .callbacks.node_callbacks import NodeCallbackFunc, NodeCallbackReg
 from .nodes import CategoryPtr
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
@@ -91,6 +89,14 @@ class Camera:
             msg: str = f'Can\'t get the device serial number. {e}'
             spincam_logger.warning(msg)
             return 'Unknown'
+
+    @property
+    def sys(self) -> System:
+        return self._sys
+
+    @property
+    def iface(self) -> Iface | None:
+        return self._sys.get_iface_by_id(self._iface_id)
 
     @property
     def nodemap(self) -> PySpin.INodeMap | None:
@@ -329,6 +335,10 @@ class CameraReg:
     @property
     def cams(self) -> dict[str, Camera]:
         return self._cams
+
+    @property
+    def sys(self) -> System:
+        return self._sys
 
     @property
     def iface(self) -> Iface | None:

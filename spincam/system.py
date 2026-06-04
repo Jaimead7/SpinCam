@@ -24,7 +24,6 @@ from contextlib import contextmanager
 
 import PySpin
 
-from .callbacks.iface_callbacks import IfaceEventCallback
 from .callbacks.sys_callbacks import SysEventCallback, SysEventHandler
 from .camera import Camera
 from .interface import Iface, IfaceReg
@@ -103,12 +102,12 @@ class System:
         spincam_logger.warning(msg)
         return None
 
-    def register_sys_events(
+    def register_events(
         self,
         iface_arrival_callback: SysEventCallback | None = None,
         iface_removal_callback: SysEventCallback | None = None
     ) -> FuncResult:
-        self.unregister_sys_events()
+        self.unregister_events()
         if iface_arrival_callback is not None:
             self._sys_events.set_arr_callback(iface_arrival_callback)
         if iface_removal_callback is not None:
@@ -121,29 +120,7 @@ class System:
             return FuncResult.ERROR
         return FuncResult.SUCCESS
 
-    def register_iface_events(
-        self,
-        ifaces_ids: Iterable[str] | None = None,
-        device_arrival_callback: IfaceEventCallback | None = None,
-        device_removal_callback: IfaceEventCallback | None = None
-    ) -> FuncResult:
-        if ifaces_ids is None:
-            ifaces_ids = self.ifaces_ids
-        ret: FuncResult = FuncResult.SUCCESS
-        for iface in self.ifaces:
-            if iface.id in ifaces_ids:
-                ret &= iface.register_iface_events(
-                    device_arrival_callback= device_arrival_callback,
-                    device_removal_callback= device_removal_callback
-                )
-        return ret
-
     def unregister_events(self) -> FuncResult:
-        ret: FuncResult = self.unregister_sys_events()
-        ret &= self.unregister_iface_events()
-        return FuncResult.SUCCESS
-
-    def unregister_sys_events(self) -> FuncResult:
         try:
             self._sys.UnregisterEventHandler(self._sys_events)
         except PySpin.SpinnakerException as e:
@@ -152,18 +129,6 @@ class System:
                 spincam_logger.warning(msg)
                 return FuncResult.ERROR
         return FuncResult.SUCCESS
-
-    def unregister_iface_events(
-        self,
-        ifaces_ids: Iterable[str] | None = None
-    ) -> FuncResult:
-        if ifaces_ids is None:
-            ifaces_ids = self.ifaces_ids
-        ret: FuncResult = FuncResult.SUCCESS
-        for iface in self.ifaces:
-            if iface.id in ifaces_ids:
-                ret &= iface.unregister_events()
-        return ret
 
 
 @contextmanager

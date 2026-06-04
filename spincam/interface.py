@@ -104,6 +104,10 @@ class Iface:
             spincam_logger.warning(msg)
             return 'Unknown'
 
+    @property
+    def sys(self) -> System:
+        return self._sys
+
     @cached_property
     def nodemap(self) -> PySpin.INodeMap:
         try:

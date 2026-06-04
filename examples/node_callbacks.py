@@ -44,21 +44,17 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import (Camera, FuncResult, Iface, NodeCallbackFunc, NodePtr,
-                     System, get_cam_list_repr, get_sys)
+from spincam import (Camera, FuncResult, NodeCallbackFunc, NodePtr,
+                     get_cam_list_repr, get_sys)
 
 
-def callback_func(
-    sys: System,
-    parent: Iface | Camera | None,
-    node: NodePtr
-) -> FuncResult:
-    print(f'"{node.display_name}" node callback execution...')
+def callback_func(node: NodePtr) -> FuncResult:
+    print(f'{node.parent}: "{node.display_name}" node callback execution...')
     wait_time: int = randint(1, 5)
     start: float = time()
     sleep(wait_time)
     end: float = time()
-    print(f'"{node.display_name}" node callback executed in {end - start:.4f}s, expected {wait_time}s.')
+    print(f'{node.parent}: "{node.display_name}" node callback executed in {end - start:.4f}s, expected {wait_time}s.')
     return FuncResult.SUCCESS
 
 
@@ -69,7 +65,7 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
     'App.Root.DigitalIOControl.TriggerMode': 'On',
-    'App.Root.DigitalIOControl.TriggerSource': 'Software',
+    'App.Root.DigitalIOControl.TriggerSource': 'Line1',
     'App.Root.deviceCounterAndTimerControl.counterSelector': 'Counter1',
     'App.Root.deviceCounterAndTimerControl.counterMode': 'Off',
     'App.Root.deviceCounterAndTimerControl.counterStartSource': 'AcquisitionStart',

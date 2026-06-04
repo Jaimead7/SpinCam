@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 class SysEventCallback(Protocol):
-    def __call__(self, sys: System, iface: Iface) -> FuncResult: ...
+    def __call__(self, iface: Iface) -> FuncResult: ...
 
 
 class SysEventHandler(PySpin.SystemEventHandler):
@@ -55,7 +55,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
         super().__init__()
 
     @staticmethod
-    def _dummy_callback(sys: System, iface: Iface) -> FuncResult:
+    def _dummy_callback(iface: Iface) -> FuncResult:
         return FuncResult.SUCCESS
 
     def set_arr_callback(self, callback: SysEventCallback | None = None) -> None:
@@ -77,7 +77,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
                 raise ValueError(msg)
             threading.Thread(
                 target= self._arr_callback,
-                args=(self._sys, sys_iface,),
+                args=(sys_iface,),
                 daemon= True
             ).start()
         except Exception as e:
@@ -96,7 +96,7 @@ class SysEventHandler(PySpin.SystemEventHandler):
             iface = Iface(sys= self._sys, ptr= pInterface)
             threading.Thread(
                 target= self._rm_callback,
-                args=(self._sys, iface,),
+                args=(iface,),
                 daemon= True
             ).start()
         except Exception as e:
