@@ -251,11 +251,16 @@ class Camera:
             img_res.Release()
         return img_array
 
-    def get_node_value(
-        self,
-        node_route: str
-    ) -> tuple[FuncResult, Any]:
-        node_ptr: NodePtr | None = self.get_node_ptr(node_route)
+    def execute_node(self, route: str) -> FuncResult:
+        node_ptr: NodePtr | None = self.get_node_ptr(route)
+        if node_ptr is None:
+            msg: str = f'{self}: Unable to execute "{route}" node. Node not found.'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return node_ptr.execute()
+
+    def get_node_value(self, route: str) -> tuple[FuncResult, Any]:
+        node_ptr: NodePtr | None = self.get_node_ptr(route)
         if node_ptr is None:
             return FuncResult.ERROR, None
         ret: FuncResult
@@ -264,11 +269,8 @@ class Camera:
         return ret, name
 
     def set_node_value(
-        self,
-        node_route: str,
-        value: Any = None
-    ) -> tuple[FuncResult, Any]:
-        node_ptr: NodePtr | None = self.get_node_ptr(node_route)
+        self, route: str, value: Any = None) -> tuple[FuncResult, Any]:
+        node_ptr: NodePtr | None = self.get_node_ptr(route)
         if node_ptr is None:
             return FuncResult.ERROR, None
         ret: FuncResult
@@ -306,30 +308,16 @@ class Camera:
 
     def register_node_callback(
         self,
-        node_route: str,
+        route: str,
         callback: NodeCallbackFunc
     ) -> FuncResult:
         return self._node_callback_reg.register(
             func= callback,
-            route= node_route
+            route= route
         )
 
-    def unregister_node_callback(
-        self,
-        node_route: str
-    ) -> FuncResult:
-        return self._node_callback_reg.unregister(route= node_route)
-
-    def get_node_callbacks(self) -> dict[str, NodeCallback]:
-        return self._node_callback_reg.callbacks
-
-    def execute_node(self, node_route: str) -> FuncResult:
-        node_ptr: NodePtr | None = self.get_node_ptr(node_route)
-        if node_ptr is None:
-            msg: str = f'{self}: Unable to execute "{node_route}" node. Node not found.'
-            spincam_logger.error(msg)
-            return FuncResult.ERROR
-        return node_ptr.execute()
+    def unregister_node_callback(self, route: str) -> FuncResult:
+        return self._node_callback_reg.unregister(route= route)
 
 
 class CameraReg:

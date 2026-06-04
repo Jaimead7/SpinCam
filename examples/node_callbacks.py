@@ -102,7 +102,7 @@ def main() -> None:
             )
             for route, callback in node_callbacks.items():
                 cam.register_node_callback(
-                    node_route= route,
+                    route= route,
                     callback= callback
                 )
             cam.start_acq()
