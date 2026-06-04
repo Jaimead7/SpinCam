@@ -28,7 +28,7 @@ import PySpin
 
 from .callbacks.iface_callbacks import IfaceEventCallback, IfaceEventHandler
 from .camera import Camera, CameraReg
-from .nodes import CategoryPtr, NodePtr, NodePtrTypes
+from .nodes import CategoryNode, Node, NodeTypes
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 
@@ -44,7 +44,7 @@ class Iface:
     ) -> None:
         self._sys: System = sys
         self._ptr: PySpin.InterfacePtr = ptr
-        self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
+        self._node_ptrs: dict[str, Node] = self._root_node_ptrs()
         self._create_nodemap()
         self._cam_reg = CameraReg(self._sys, self.id)
         self._iface_events: IfaceEventHandler = IfaceEventHandler(
@@ -67,8 +67,8 @@ class Iface:
         try:
             raw_node: PySpin.INode = self.nodemap.GetNode('InterfaceID')
             iface_type: Any = raw_node.GetPrincipalInterfaceType()
-            NODE_PTR_TYPE: type[NodePtr] = NodePtrTypes.get(iface_type)
-            interface_id_node: NodePtr = NODE_PTR_TYPE(
+            NODE_PTR_TYPE: type[Node] = NodeTypes.get(iface_type)
+            interface_id_node: Node = NODE_PTR_TYPE(
                 sys= self._sys,
                 parent_id= 'Unknown',
                 route= 'Transport.Root.InterfaceInformation.InterfaceID',
@@ -88,8 +88,8 @@ class Iface:
         try:
             raw_node: PySpin.INode = self.nodemap.GetNode('InterfaceDisplayName')
             iface_type: Any = raw_node.GetPrincipalInterfaceType()
-            NODE_PTR_TYPE: type[NodePtr] = NodePtrTypes.get(iface_type)
-            display_name_node: NodePtr = NODE_PTR_TYPE(
+            NODE_PTR_TYPE: type[Node] = NodeTypes.get(iface_type)
+            display_name_node: Node = NODE_PTR_TYPE(
                 sys= self._sys,
                 parent_id= 'Unknown',
                 route= 'Transport.Root.InterfaceInformation.InterfaceDisplayName',
@@ -127,9 +127,9 @@ class Iface:
         self.update_cams()
         return self._cam_reg.cams.keys()
 
-    def _root_node_ptrs(self) -> dict[str, NodePtr]:
+    def _root_node_ptrs(self) -> dict[str, Node]:
         return {
-            'Transport.Root': CategoryPtr(
+            'Transport.Root': CategoryNode(
                 sys= self._sys,
                 parent_id= self.id,
                 route= 'Transport.Root',
@@ -138,13 +138,13 @@ class Iface:
         }
 
     def _create_nodemap(self) -> None:
-        root_node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
+        root_node_ptrs: dict[str, Node] = self._root_node_ptrs()
         for node_ptr in root_node_ptrs.values():
-            new_nodes: dict[str, NodePtr] = node_ptr.get_subnodes()
+            new_nodes: dict[str, Node] = node_ptr.get_subnodes()
             self._node_ptrs.update(new_nodes)
 
     def _get_node_tree(self, node_name: str) -> str:
-        node_ptr: NodePtr | None = self.get_node_ptr(node_name)
+        node_ptr: Node | None = self.get_node_ptr(node_name)
         if node_ptr is None:
             return ''
         result: str = f'\n{"    "*(node_ptr.lvl+1)}• {node_ptr.route}'
@@ -190,8 +190,8 @@ class Iface:
         result += '\n'
         return result
 
-    def get_node_ptr(self, route: str) -> NodePtr | None:
-        result: NodePtr | None = self._node_ptrs.get(route, None)
+    def get_node_ptr(self, route: str) -> Node | None:
+        result: Node | None = self._node_ptrs.get(route, None)
         if result is None:
             msg: str = f'{self}: Can\'t find "{route}" in the interface nodes.'
             spincam_logger.error(msg)

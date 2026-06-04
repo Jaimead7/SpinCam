@@ -44,11 +44,11 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import (Camera, FuncResult, NodeCallbackFunc, NodePtr,
+from spincam import (Camera, FuncResult, Node, NodeCallbackFunc,
                      get_cam_list_repr, get_sys)
 
 
-def callback_func(node: NodePtr) -> FuncResult:
+def callback_func(node: Node) -> FuncResult:
     print(f'{node.parent}: "{node.display_name}" node callback execution...')
     wait_time: int = randint(1, 5)
     start: float = time()

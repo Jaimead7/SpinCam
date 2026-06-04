@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Protocol
 
 import PySpin
 
-from ..nodes import NodePtr
+from ..nodes import Node
 from ..schemas import FuncResult
 from ..utils.logs import spincam_logger
 
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 class NodeCallbackFunc(Protocol):
-    def __call__(self, node: NodePtr) -> FuncResult: ...
+    def __call__(self, node: Node) -> FuncResult: ...
 
 
 class NodeCallback(PySpin.NodeCallback):
@@ -69,7 +69,7 @@ class NodeCallback(PySpin.NodeCallback):
             if parent is None:
                 msg: str = 'Error getting node parent.'
                 raise ValueError(msg)
-            parent_node: NodePtr | None = parent.get_node_ptr(self._route)
+            parent_node: Node | None = parent.get_node_ptr(self._route)
             if parent_node is None:
                 msg: str = f'Error getting node {self._route} from {self._parent_id}.'
                 raise ValueError(msg)
@@ -88,7 +88,7 @@ class NodeCallback(PySpin.NodeCallback):
             if parent is None:
                 msg: str = 'Error getting node parent.'
                 raise ValueError(msg)
-            parent_node: NodePtr | None = parent.get_node_ptr(self._route)
+            parent_node: Node | None = parent.get_node_ptr(self._route)
             if parent_node is None:
                 msg: str = f'Error getting node {self._route} from {self._parent_id}.'
                 raise ValueError(msg)

@@ -37,17 +37,17 @@ if TYPE_CHECKING:
     from .system import System
 
 
-class GenericPtr(Protocol):
+class GenericNode(Protocol):
     def __init__(self, *args) -> None: ...
     def GetDisplayName(self) -> str: ...
     def GetNode(self) -> PySpin.INode: ...
 
 
-T = TypeVar('T', bound= GenericPtr)
+T = TypeVar('T', bound= GenericNode)
 
 
-class NodePtr(Generic[T]):
-    PYSPIN_CLS: ClassVar[type[GenericPtr]]
+class Node(Generic[T]):
+    PYSPIN_CLS: ClassVar[type[GenericNode]]
     node: T
 
     def __init__(
@@ -169,8 +169,8 @@ class NodePtr(Generic[T]):
         return FuncResult.ERROR
 
 
-class NodePtrTypes:
-    _ptrs: ClassVar[dict[str, type[NodePtr]]] = {}
+class NodeTypes:
+    _ptrs: ClassVar[dict[str, type[Node]]] = {}
 
     def __new__(cls) -> Self:
         msg: str = f'"{cls.__name__}" is not instantiable.'
@@ -182,9 +182,9 @@ class NodePtrTypes:
         return str(name).upper()
 
     @classmethod
-    def register(cls, name: Any) -> Callable[[type[NodePtr]], type[NodePtr]]:
+    def register(cls, name: Any) -> Callable[[type[Node]], type[Node]]:
         name = cls._parse_name(name)
-        def decorator(cls_type: type[NodePtr]) -> type[NodePtr]:
+        def decorator(cls_type: type[Node]) -> type[Node]:
             if name in cls._ptrs:
                 msg: str = f'NodePtr "{name}" is already registered. It will be overwritten.'
                 spincam_logger.warning(msg)
@@ -197,15 +197,15 @@ class NodePtrTypes:
     @classmethod
     def unregister(cls, name: Any) -> None:
         name = cls._parse_name(name)
-        result: type[NodePtr] | None = cls._ptrs.pop(name, None)
+        result: type[Node] | None = cls._ptrs.pop(name, None)
         if result is not None:
             msg: str = f'NodePtr "{name}" unregistered.'
             spincam_logger.debug(msg)
 
     @classmethod
-    def get(cls, name: Any) -> type[NodePtr]:
+    def get(cls, name: Any) -> type[Node]:
         name = cls._parse_name(name)
-        ptr_cls: type[NodePtr] | None = cls._ptrs.get(name, None)
+        ptr_cls: type[Node] | None = cls._ptrs.get(name, None)
         if ptr_cls is None:
             msg: str = f'"{name}" is not a valid NodePtr.'
             spincam_logger.error(msg)
@@ -221,8 +221,8 @@ class NodePtrTypes:
         cls._ptrs.clear()
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.CATEGORY.value)
-class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.CATEGORY.value)
+class CategoryNode(Node[PySpin.CCategoryPtr]):
     PYSPIN_CLS = PySpin.CCategoryPtr
 
     def __init__(
@@ -266,8 +266,8 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
             return FuncResult.ERROR, []
         return FuncResult.SUCCESS, childrens
 
-    def get_subnodes(self) -> dict[str, NodePtr]:
-        result: dict[str, NodePtr] = {}
+    def get_subnodes(self) -> dict[str, Node]:
+        result: dict[str, Node] = {}
         ret: FuncResult
         childrens: Sequence[PySpin.INode]
         ret, childrens = self.get_childrens()
@@ -277,10 +277,10 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
             name: str = child.GetName()
             iface_type: Any = child.GetPrincipalInterfaceType()
             try:
-                NODE_PTR_TYPE: type[NodePtr] = NodePtrTypes.get(iface_type)
+                NODE_PTR_TYPE: type[Node] = NodeTypes.get(iface_type)
             except ValueError:
                 continue
-            node_ptr: NodePtr = NODE_PTR_TYPE(
+            node_ptr: Node = NODE_PTR_TYPE(
                 sys= self._sys,
                 parent_id= self._parent_id,
                 route= f'{self.route}.{name}',
@@ -288,13 +288,13 @@ class CategoryPtr(NodePtr[PySpin.CCategoryPtr]):
             )
             result[node_ptr.route] = node_ptr
             if NODE_PTR_TYPE == self.__class__:
-                subnodes: dict[str, NodePtr] = node_ptr.get_subnodes()
+                subnodes: dict[str, Node] = node_ptr.get_subnodes()
                 result.update(subnodes)
         return result
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.ENUM.value)
-class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.ENUM.value)
+class EnumerationNode(Node[PySpin.CEnumerationPtr]):
     PYSPIN_CLS = PySpin.CEnumerationPtr
 
     def __init__(
@@ -377,8 +377,8 @@ class EnumerationPtr(NodePtr[PySpin.CEnumerationPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.BOOL.value)
-class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.BOOL.value)
+class BoolNode(Node[PySpin.CBooleanPtr]):
     PYSPIN_CLS = PySpin.CBooleanPtr
 
     def __init__(
@@ -451,8 +451,8 @@ class BoolPtr(NodePtr[PySpin.CBooleanPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.INT.value)
-class IntPtr(NodePtr[PySpin.CIntegerPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.INT.value)
+class IntNode(Node[PySpin.CIntegerPtr]):
     PYSPIN_CLS = PySpin.CIntegerPtr
 
     def __init__(
@@ -539,8 +539,8 @@ class IntPtr(NodePtr[PySpin.CIntegerPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.FLOAT.value)
-class FloatPtr(NodePtr[PySpin.CFloatPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.FLOAT.value)
+class FloatNode(Node[PySpin.CFloatPtr]):
     PYSPIN_CLS = PySpin.CFloatPtr
 
     def __init__(
@@ -627,8 +627,8 @@ class FloatPtr(NodePtr[PySpin.CFloatPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.STRING.value)
-class StrPtr(NodePtr[PySpin.CStringPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.STRING.value)
+class StrNode(Node[PySpin.CStringPtr]):
     PYSPIN_CLS = PySpin.CStringPtr
 
     def __init__(
@@ -701,8 +701,8 @@ class StrPtr(NodePtr[PySpin.CStringPtr]):
         return FuncResult.SUCCESS, value
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.COMMAND.value)
-class CommandPtr(NodePtr[PySpin.CCommandPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.COMMAND.value)
+class CommandNode(Node[PySpin.CCommandPtr]):
     PYSPIN_CLS = PySpin.CCommandPtr
 
     def __init__(
@@ -742,8 +742,8 @@ class CommandPtr(NodePtr[PySpin.CCommandPtr]):
         return FuncResult.SUCCESS
 
 
-@NodePtrTypes.register(NODE_PTR_TYPES.REGISTER.value)
-class RegisterPtr(NodePtr[PySpin.CRegisterPtr]):
+@NodeTypes.register(NODE_PTR_TYPES.REGISTER.value)
+class RegisterNode(Node[PySpin.CRegisterPtr]):
     PYSPIN_CLS = PySpin.CRegisterPtr
 
     def __init__(

@@ -28,10 +28,10 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import PySpin
 
-from spincam.nodes import NodePtr
+from spincam.nodes import Node
 
 from .callbacks.node_callbacks import NodeCallbackFunc, NodeCallbackReg
-from .nodes import CategoryPtr
+from .nodes import CategoryNode
 from .schemas import FuncResult
 from .utils.logs import spincam_logger
 from .utils.timing import time_group
@@ -47,7 +47,7 @@ class Camera:
         self._iface_id: str = iface_id
         self._ptr: PySpin.CameraPtr = ptr
         self.init()
-        self._node_ptrs: dict[str, NodePtr] = self._root_node_ptrs()
+        self._node_ptrs: dict[str, Node] = self._root_node_ptrs()
         self._create_nodemap()
         self._node_callback_reg: NodeCallbackReg = NodeCallbackReg(
             sys= self._sys,
@@ -131,27 +131,27 @@ class Camera:
             spincam_logger.error(msg)
             return None
 
-    def _root_node_ptrs(self) -> dict[str, NodePtr]:
+    def _root_node_ptrs(self) -> dict[str, Node]:
         nodemap: PySpin.INodeMap | None = self.nodemap
         tl_device_nodemap: PySpin.INodeMap | None = self.tl_device_nodemap
         tl_stream_nodemap: PySpin.INodeMap | None = self.tl_stream_nodemap
-        result: dict[str, NodePtr] = {}
+        result: dict[str, Node] = {}
         if nodemap is not None:
-            result['App.Root'] = CategoryPtr(
+            result['App.Root'] = CategoryNode(
                 sys= self._sys,
                 parent_id= self.serial_number,
                 route= 'App.Root',
                 nodemap= nodemap,
             )
         if tl_device_nodemap is not None:
-            result['Device.Root'] = CategoryPtr(
+            result['Device.Root'] = CategoryNode(
                 sys= self._sys,
                 parent_id= self.serial_number,
                 route= 'Device.Root',
                 nodemap= tl_device_nodemap,
             )
         if tl_stream_nodemap is not None:
-            result['Stream.Root'] = CategoryPtr(
+            result['Stream.Root'] = CategoryNode(
                 sys= self._sys,
                 parent_id= self.serial_number,
                 route= 'Stream.Root',
@@ -160,13 +160,13 @@ class Camera:
         return result
 
     def _create_nodemap(self) -> None:
-        root_node_ptrs: dict[str, NodePtr] = self._node_ptrs.copy()
+        root_node_ptrs: dict[str, Node] = self._node_ptrs.copy()
         for node_ptr in root_node_ptrs.values():
-            new_nodes: dict[str, NodePtr] = node_ptr.get_subnodes()
+            new_nodes: dict[str, Node] = node_ptr.get_subnodes()
             self._node_ptrs.update(new_nodes)
 
     def _get_node_tree(self, node_name: str) -> str:
-        node_ptr: NodePtr | None = self.get_node_ptr(node_name)
+        node_ptr: Node | None = self.get_node_ptr(node_name)
         if node_ptr is None:
             return ''
         result: str = f'\n{"    "*(node_ptr.lvl+1)}• {node_ptr.route}'
@@ -206,8 +206,8 @@ class Camera:
         result += '\n'
         return result
 
-    def get_node_ptr(self, route: str) -> NodePtr | None:
-        result: NodePtr | None = self._node_ptrs.get(route, None)
+    def get_node_ptr(self, route: str) -> Node | None:
+        result: Node | None = self._node_ptrs.get(route, None)
         if result is None:
             msg: str = f'{self}: Can\'t find "{route}" in the camera nodes.'
             spincam_logger.error(msg)
@@ -258,7 +258,7 @@ class Camera:
         return img_array
 
     def execute_node(self, route: str) -> FuncResult:
-        node_ptr: NodePtr | None = self.get_node_ptr(route)
+        node_ptr: Node | None = self.get_node_ptr(route)
         if node_ptr is None:
             msg: str = f'{self}: Unable to execute "{route}" node. Node not found.'
             spincam_logger.error(msg)
@@ -266,7 +266,7 @@ class Camera:
         return node_ptr.execute()
 
     def get_node_value(self, route: str) -> tuple[FuncResult, Any]:
-        node_ptr: NodePtr | None = self.get_node_ptr(route)
+        node_ptr: Node | None = self.get_node_ptr(route)
         if node_ptr is None:
             return FuncResult.ERROR, None
         ret: FuncResult
@@ -276,7 +276,7 @@ class Camera:
 
     def set_node_value(
         self, route: str, value: Any = None) -> tuple[FuncResult, Any]:
-        node_ptr: NodePtr | None = self.get_node_ptr(route)
+        node_ptr: Node | None = self.get_node_ptr(route)
         if node_ptr is None:
             return FuncResult.ERROR, None
         ret: FuncResult
@@ -294,7 +294,7 @@ class Camera:
             return FuncResult.ERROR
         fun_res: FuncResult = FuncResult.SUCCESS
         for route, default_val in default_values.items():
-            current_node: NodePtr | None = self._node_ptrs.get(str(route), None)
+            current_node: Node | None = self._node_ptrs.get(str(route), None)
             if current_node is None:
                 msg: str = f'{self}: Can\'t find "{route}" in the camera nodes.'
                 spincam_logger.error(msg)
