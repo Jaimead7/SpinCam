@@ -76,8 +76,11 @@ def cam_arrival(iface: Iface, cam: Camera) -> FuncResult:
         cam.stop_acq()
         cam.update_nodes_default_values(nodes_default_values)
         cam.set_nodes_default_values()
-        for route, func in node_callbacks.items():
-            cam.register_node_callback(route, func)
+        for route, callback in node_callbacks.items():
+            cam.register_node_callback(
+                node_route= route,
+                callback= callback
+            )
         cam.start_acq()
         exit = False
         while True:

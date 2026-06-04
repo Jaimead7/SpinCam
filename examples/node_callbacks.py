@@ -100,8 +100,11 @@ def main() -> None:
                 'App.Root.deviceCounterAndTimerControl.counterMode',
                 'Active'
             )
-            for route, func in node_callbacks.items():
-                cam.register_node_callback(route, func)
+            for route, callback in node_callbacks.items():
+                cam.register_node_callback(
+                    node_route= route,
+                    callback= callback
+                )
             cam.start_acq()
             exit = False
             while True:
