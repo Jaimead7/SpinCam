@@ -26,14 +26,16 @@ py -m pip install jaimead7-spincam
 ```
 
 ## Usage  
-See [examples](./examples/).  
-The wrapper is based on the `Camera` class.  
-To access a camera use the `get_camera` contextmanager provided.  
+See ***[examples](./examples/)***.  
+The wrapper is based on the `get_sys` contextmanager.  
 The contextmanager will manage the release of the pointer objects.  
+This context manager returns a `System` object.  
+This `System` object has all the functionality needed to manage cameras and interfaces.  
+Check the classes architecture in ***[System API](./docs/schemas.dio)*** schema.  
 ```python
-from spincam import get_camera
+from spincam import get_sys
 
-with get_camera('<cam_id>') as cam:
+with get_sys() as sys:
     ...
 ```
 
