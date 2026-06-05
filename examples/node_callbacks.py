@@ -44,10 +44,65 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import (Camera, FuncResult, Node, NodeCallbackFunc,
+from spincam import (CamConfigStep, Camera, FuncResult, Node, NodeCallbackFunc,
                      get_cam_list_repr, get_sys)
 
 
+#---------- CAMERA STREAM ----------#
+def cam_streaming(cam: Camera) -> None:
+    try:
+        window_name: str = f'Camera: {cam}'
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cam.set_config_seq(config_seq)
+        cam.update_nodes_default_values(nodes_default_values)
+        cam.set_nodes_default_values()
+        cam.execute_config_seq()
+        cam.start_acq()
+        for route, callback in node_callbacks.items():
+            cam.register_node_callback(
+                route= route,
+                callback= callback
+            )
+        exit = False
+        while True:
+            cam.set_node_value(
+                'App.Root.deviceSensorControl.Gain',
+                2
+            )
+            print('Executing trigger...')
+            cam.execute_node('App.Root.DigitalIOControl.TriggerSoftware')
+            ret: FuncResult
+            value: float
+            ret, value = cam.get_node_value('App.Root.deviceCounterAndTimerControl.counterValue')
+            print(f'Counter from main: {value}')
+            ret, value = cam.get_node_value('App.Root.deviceSensorControl.Gain')
+            print(f'Gain from main: {value}')
+            img: np.ndarray | None = cam.get_last_img()
+            if img is None:
+                exit = True
+                break
+            cv2.imshow(window_name, img)
+            key: int = -1
+            while key == -1:
+                key = cv2.waitKey(1)
+                if key == 27:
+                    break
+                elif key == 32:
+                    break
+            if key == 27 or exit:
+                break
+    except ValueError:
+        pass
+    except RuntimeError:
+        pass
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cam.unregister_all_node_callbacks()
+        cv2.destroyAllWindows()
+        print(f'{cam} stream closed.')
+
+#---------- CALLBAKCS ----------#
 def callback_func(node: Node) -> FuncResult:
     print(f'{node.parent}: "{node.display_name}" node callback execution...')
     wait_time: int = randint(1, 5)
@@ -57,24 +112,30 @@ def callback_func(node: Node) -> FuncResult:
     print(f'{node.parent}: "{node.display_name}" node callback executed in {end - start:.4f}s, expected {wait_time}s.')
     return FuncResult.SUCCESS
 
-
+#---------- CONFIG ----------#
 nodes_default_values: dict[str, Any] = {
     'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
     'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
     'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
-    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
-    'App.Root.DigitalIOControl.TriggerMode': 'On',
-    'App.Root.DigitalIOControl.TriggerSource': 'Line1',
-    'App.Root.deviceCounterAndTimerControl.counterSelector': 'Counter1',
-    'App.Root.deviceCounterAndTimerControl.counterMode': 'Off',
-    'App.Root.deviceCounterAndTimerControl.counterStartSource': 'AcquisitionStart',
-    'App.Root.deviceCounterAndTimerControl.counterIncrementalSource': 'ValidFrameTrigger',
-    'App.Root.deviceCounterAndTimerControl.counterResetSource': 'Off',
-    'App.Root.deviceCounterAndTimerControl.counterDuration': 1,
-    'App.Root.deviceEventControl.EventSelector': 'ValidFrameTrigger',
-    'App.Root.deviceEventControl.EventNotification': 'On'
+    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart'
 }
+
+config_seq: list[CamConfigStep] = [
+    CamConfigStep(step= 1, route= 'App.Root.DigitalIOControl.TriggerMode', value= 'On'),
+    CamConfigStep(step= 2, route= 'App.Root.DigitalIOControl.TriggerSource', value= 'Line1'),
+    CamConfigStep(step= 3, route= 'App.Root.deviceCounterAndTimerControl.counterSelector', value= 'Counter1'),
+    CamConfigStep(step= 4, route= 'App.Root.deviceCounterAndTimerControl.counterMode', value= 'Off'),
+    CamConfigStep(step= 5, route= 'App.Root.deviceCounterAndTimerControl.counterStartSource', value= 'AcquisitionStart'),
+    CamConfigStep(step= 6, route= 'App.Root.deviceCounterAndTimerControl.counterIncrementalSource', value= 'ValidFrameTrigger'),
+    CamConfigStep(step= 7, route= 'App.Root.deviceCounterAndTimerControl.counterResetSource', value= 'Off'),
+    CamConfigStep(step= 8, route= 'App.Root.deviceCounterAndTimerControl.counterDuration', value= 1),
+    CamConfigStep(step= 9, route= 'App.Root.deviceCounterAndTimerControl.counterMode', value= 'Active'),
+    CamConfigStep(step= 10, route= 'App.Root.deviceEventControl.EventSelector', value= 'ValidFrameTrigger'),
+    CamConfigStep(step= 11, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+    CamConfigStep(step= 12, route= 'App.Root.deviceEventControl.EventSelector', value= 'InvalidFrameTrigger'),
+    CamConfigStep(step= 13, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+]
 
 node_callbacks: dict[str, NodeCallbackFunc] = {
     'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
@@ -82,65 +143,17 @@ node_callbacks: dict[str, NodeCallbackFunc] = {
     'App.Root.deviceCounterAndTimerControl.counterValue': callback_func,  # This callback will not work, but the counter is working.
 }
 
+#---------- MAIN ----------#
 def main() -> None:
-    try:
-        with get_sys() as sys:
-            print(get_cam_list_repr(sys.cams))
-            cam_selected: str = input('Select a camera by serial number: ')
-            if cam_selected not in sys.cams_serial_numbers:
-                raise ValueError('Please select a valid serial number.')
-            cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
-            if cam is None:
-                raise ValueError(f'Error getting "{cam_selected}" camera.')
-            window_name: str = f'Camera: {cam_selected}'
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cam.update_nodes_default_values(nodes_default_values)
-            cam.set_nodes_default_values()
-            cam.set_node_value(
-                'App.Root.deviceCounterAndTimerControl.counterMode',
-                'Active'
-            )
-            for route, callback in node_callbacks.items():
-                cam.register_node_callback(
-                    route= route,
-                    callback= callback
-                )
-            cam.start_acq()
-            exit = False
-            while True:
-                cam.set_node_value(
-                    'App.Root.deviceSensorControl.Gain',
-                    2
-                )
-                print('Executing trigger...')
-                cam.execute_node('App.Root.DigitalIOControl.TriggerSoftware')
-                img: np.ndarray | None = cam.get_last_img()
-                ret: FuncResult
-                value: float
-                ret, value = cam.get_node_value('App.Root.deviceCounterAndTimerControl.counterValue')
-                print(f'Counter from main: {value}')
-                ret, value = cam.get_node_value('App.Root.deviceSensorControl.Gain')
-                print(f'Gain from main: {value}')
-                if img is None:
-                    exit = True
-                    break
-                cv2.imshow(window_name, img)
-                key: int = -1
-                while key == -1:
-                    key = cv2.waitKey(1)
-                    if key == 27:
-                        break
-                    elif key == 32:
-                        break
-                if key == 27 or exit:
-                    break
-    except ValueError as e:
-        print(e)
-    except RuntimeError as e:
-        print(e)
-    except KeyboardInterrupt:
-        print('\nStopping program...')
-    cv2.destroyAllWindows()
+    with get_sys() as sys:
+        print(get_cam_list_repr(sys.cams))
+        cam_selected: str = input('Select a camera by serial number: ')
+        if cam_selected not in sys.cams_serial_numbers:
+            raise ValueError('Please select a valid serial number.')
+        cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
+        if cam is None:
+            raise ValueError(f'Error getting "{cam_selected}" camera.')
+        cam_streaming(cam)
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@
 
 
 from .callbacks.node_callbacks import NodeCallbackFunc
-from .camera import Camera, get_cam_list_repr
+from .camera import CamConfigSeq, CamConfigStep, Camera, get_cam_list_repr
 from .interface import Iface, get_iface_list_repr
 from .nodes import Node
 from .schemas import FuncResult

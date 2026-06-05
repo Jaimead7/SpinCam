@@ -21,7 +21,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
@@ -41,6 +42,75 @@ if TYPE_CHECKING:
     from .system import System
 
 
+@dataclass
+class CamConfigStep:
+    route: str
+    value: Any
+    step: int
+
+    def __lt__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step < other.step
+
+    def __le__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step <= other.step
+
+    def __gt__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step > other.step
+
+    def __ge__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step >= other.step
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, CamConfigStep):
+            raise NotImplementedError(f'{self.__class__.__name__} doesn\'t implement eq')
+        return self.step == other.step
+
+
+class CamConfigSeq:
+    def __init__(self, steps: Iterable[CamConfigStep] = ()) -> None:
+        self._seq: list[CamConfigStep] = []
+        self._seq.extend(steps)
+        self._seq.sort()
+
+    @property
+    def seq(self) -> tuple[CamConfigStep, ...]:
+        return tuple(self._seq)
+
+    @seq.setter
+    def seq(self, steps: Iterable[CamConfigStep]) -> None:
+        self._seq.clear()
+        self._seq.extend(steps)
+        self._seq.sort()
+
+    def append(self, step: CamConfigStep) -> None:
+        self._seq.append(step)
+        self._seq.sort()
+
+    def extend(self, steps: Iterable[CamConfigStep]) -> None:
+        self._seq.extend(steps)
+        self._seq.sort()
+
+    def __len__(self) -> int:
+        return len(self._seq)
+
+    def __getitem__(self, index: int) -> CamConfigStep:
+        return self._seq[index]
+
+    def __iter__(self) -> Iterator[CamConfigStep]:
+        return iter(self._seq)
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self._seq})'
+
+
 class Camera:
     def __init__(self, sys: System, iface_id: str, ptr: PySpin.CameraPtr) -> None:
         self._sys: System = sys
@@ -53,6 +123,7 @@ class Camera:
             sys= self._sys,
             parent_id= self.serial_number
         )
+        self._config_seq: CamConfigSeq = CamConfigSeq()
 
     def __str__(self) -> str:
         return f'Camera {self.name}'
@@ -193,7 +264,7 @@ class Camera:
 
     def clear(self) -> None:
         self.stop_acq()
-        self._node_callback_reg.unregister_all()
+        self.unregister_all_node_callbacks()
         self._ptr.DeInit()
         del self._ptr
 
@@ -214,14 +285,15 @@ class Camera:
         return result
 
     def start_acq(self) -> FuncResult:
+        self.stop_acq()
         try:
             self._ptr.BeginAcquisition()
+            if not self._ptr.IsStreaming():
+                raise PySpin.SpinnakerException('Camera is not streaming.')
             msg: str = f'{self}: Camera acquisition started.'
             spincam_logger.info(msg)
-        except PySpin.SpinnakerException:
-            pass
-        if not self._ptr.IsStreaming():
-            msg: str = f'{self}: Can\'t start camera acquisition.'
+        except Exception as e:
+            msg: str = f'{self}: Can\'t start camera acquisition. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS
@@ -312,6 +384,27 @@ class Camera:
             fun_res &= ret
         return fun_res
 
+    def set_config_seq(self, steps: Iterable[CamConfigStep]) -> FuncResult:
+        try:
+            self._config_seq.seq = steps
+        except Exception as e:
+            msg: str = f'{self}: Unable to set the configuration sequence. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def execute_config_seq(self) -> FuncResult:
+        result: FuncResult = FuncResult.SUCCESS
+        for step in self._config_seq.seq:
+            ret: FuncResult
+            res: Any
+            ret, res = self.set_node_value(
+                route= step.route,
+                value= step.value
+            )
+            result &= ret
+        return result
+
     def register_node_callback(
         self,
         route: str,
@@ -324,6 +417,9 @@ class Camera:
 
     def unregister_node_callback(self, route: str) -> FuncResult:
         return self._node_callback_reg.unregister(route= route)
+
+    def unregister_all_node_callbacks(self) -> FuncResult:
+        return self._node_callback_reg.unregister_all()
 
 
 class CameraReg:
