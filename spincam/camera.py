@@ -21,7 +21,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
@@ -39,6 +40,75 @@ from .utils.timing import time_group
 if TYPE_CHECKING:
     from .interface import Iface
     from .system import System
+
+
+@dataclass
+class CamConfigStep:
+    route: str
+    value: Any
+    step: int
+
+    def __lt__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step < other.step
+
+    def __le__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step <= other.step
+
+    def __gt__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step > other.step
+
+    def __ge__(self, other: CamConfigStep) -> bool:
+        if not isinstance(other, CamConfigStep):
+            return NotImplemented
+        return self.step >= other.step
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, CamConfigStep):
+            raise NotImplementedError(f'{self.__class__.__name__} doesn\'t implement eq')
+        return self.step == other.step
+
+
+class CamConfigSeq:
+    def __init__(self, sequence: Iterable[CamConfigStep]) -> None:
+        self._seq: list[CamConfigStep] = []
+        self._seq.extend(sequence)
+        self._seq.sort()
+
+    @property
+    def seq(self) -> tuple[CamConfigStep, ...]:
+        return tuple(self._seq)
+
+    @seq.setter
+    def seq(self, sequence: Iterable[CamConfigStep]) -> None:
+        self._seq.clear()
+        self._seq.extend(sequence)
+        self._seq.sort()
+
+    def append(self, step: CamConfigStep) -> None:
+        self._seq.append(step)
+        self._seq.sort()
+
+    def extend(self, steps: Iterable[CamConfigStep]) -> None:
+        self._seq.extend(steps)
+        self._seq.sort()
+
+    def __len__(self) -> int:
+        return len(self._seq)
+
+    def __getitem__(self, index: int) -> CamConfigStep:
+        return self._seq[index]
+
+    def __iter__(self) -> Iterator[CamConfigStep]:
+        return iter(self._seq)
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self._seq})'
 
 
 class Camera:
