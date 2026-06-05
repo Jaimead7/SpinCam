@@ -22,7 +22,10 @@
 # 
 # This example shows how to acquire images from a camera.
 # 
-# Configure the the camera options by changing the nodes_data dict.
+# To configure the cammera you can use either the nodes default values or the
+# camera config sequence.
+# In this example the nodes default values are used.
+# Check node_callbacks and system_callbacks examples for camera config sequence.
 # This dictionary must contain key, value pairs with:
 #   • key: str = Complete route of the node. You can use CAM_NODE_ROUTES.
 #   • value: Any --> The default value of the node.

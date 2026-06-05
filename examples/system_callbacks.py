@@ -44,7 +44,8 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import Camera, FuncResult, Iface, Node, NodeCallbackFunc, get_sys
+from spincam import (CamConfigSeq, CamConfigStep, Camera, FuncResult, Iface,
+                     Node, NodeCallbackFunc, get_sys)
 
 
 def callback_func(node: Node) -> FuncResult:
@@ -62,11 +63,18 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
-    'App.Root.DigitalIOControl.TriggerMode': 'On',
-    'App.Root.DigitalIOControl.TriggerSource': 'Line1',
-    'App.Root.deviceEventControl.EventSelector': 'ValidFrameTrigger',
-    'App.Root.deviceEventControl.EventNotification': 'On'
 }
+
+config_seq: CamConfigSeq = CamConfigSeq(
+    (
+        CamConfigStep(step= 1, route= 'App.Root.DigitalIOControl.TriggerMode', value= 'On'),
+        CamConfigStep(step= 2, route= 'App.Root.DigitalIOControl.TriggerSource', value= 'Line1'),
+        CamConfigStep(step= 3, route= 'App.Root.deviceEventControl.EventSelector', value= 'ValidFrameTrigger'),
+        CamConfigStep(step= 4, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+        CamConfigStep(step= 5, route= 'App.Root.deviceEventControl.EventSelector', value= 'InvalidFrameTrigger'),
+        CamConfigStep(step= 6, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+    )
+)
 
 node_callbacks: dict[str, NodeCallbackFunc] = {
     'App.Root.deviceSensorControl.Gain': callback_func,
@@ -78,15 +86,15 @@ def cam_arrival(cam: Camera) -> FuncResult:
     try:
         window_name: str = f'Camera: {cam}'
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cam.stop_acq()
+        cam.set_config_seq(config_seq)
         cam.update_nodes_default_values(nodes_default_values)
         cam.set_nodes_default_values()
+        cam.start_acq()
         for route, callback in node_callbacks.items():
             cam.register_node_callback(
                 route= route,
                 callback= callback
             )
-        cam.start_acq()
         exit = False
         while True:
             print('Executing trigger...')

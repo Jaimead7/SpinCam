@@ -75,9 +75,9 @@ class CamConfigStep:
 
 
 class CamConfigSeq:
-    def __init__(self, sequence: Iterable[CamConfigStep]) -> None:
+    def __init__(self, steps: Iterable[CamConfigStep] = ()) -> None:
         self._seq: list[CamConfigStep] = []
-        self._seq.extend(sequence)
+        self._seq.extend(steps)
         self._seq.sort()
 
     @property
@@ -85,9 +85,9 @@ class CamConfigSeq:
         return tuple(self._seq)
 
     @seq.setter
-    def seq(self, sequence: Iterable[CamConfigStep]) -> None:
+    def seq(self, steps: Iterable[CamConfigStep]) -> None:
         self._seq.clear()
-        self._seq.extend(sequence)
+        self._seq.extend(steps)
         self._seq.sort()
 
     def append(self, step: CamConfigStep) -> None:
@@ -123,6 +123,7 @@ class Camera:
             sys= self._sys,
             parent_id= self.serial_number
         )
+        self._config_seq: CamConfigSeq = CamConfigSeq()
 
     def __str__(self) -> str:
         return f'Camera {self.name}'
@@ -284,14 +285,18 @@ class Camera:
         return result
 
     def start_acq(self) -> FuncResult:
+        self.stop_acq()
         try:
+            ret: FuncResult = self.config_cam()
+            if ret.is_error():
+                raise RuntimeError('Error configuring camera.')
             self._ptr.BeginAcquisition()
+            if not self._ptr.IsStreaming():
+                raise PySpin.SpinnakerException('Camera is not streaming.')
             msg: str = f'{self}: Camera acquisition started.'
             spincam_logger.info(msg)
-        except PySpin.SpinnakerException:
-            pass
-        if not self._ptr.IsStreaming():
-            msg: str = f'{self}: Can\'t start camera acquisition.'
+        except Exception as e:
+            msg: str = f'{self}: Can\'t start camera acquisition. {e}'
             spincam_logger.error(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS
@@ -381,6 +386,27 @@ class Camera:
             ret, res = node_ptr.set_value()
             fun_res &= ret
         return fun_res
+
+    def set_config_seq(self, steps: Iterable[CamConfigStep]) -> FuncResult:
+        try:
+            self._config_seq.seq = steps
+        except Exception as e:
+            msg: str = f'{self}: Unable to set the configuration sequence. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def config_cam(self) -> FuncResult:
+        result: FuncResult = FuncResult.SUCCESS
+        for step in self._config_seq.seq:
+            ret: FuncResult
+            res: Any
+            ret, res = self.set_node_value(
+                route= step.route,
+                value= step.value
+            )
+            result &= ret
+        return result
 
     def register_node_callback(
         self,
