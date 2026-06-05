@@ -148,6 +148,14 @@ class NodeCallbackReg:
             return FuncResult.SUCCESS
         return callback.unregister()
 
-    def unregister_all(self) -> None:
-        for callback in self._callbacks.values():
-            callback.unregister()
+    def unregister_all(self) -> FuncResult:
+        ret: FuncResult = FuncResult.SUCCESS
+        success_routes: list[str] = []
+        for route, callback in self._callbacks.items():
+            result: FuncResult = callback.unregister()
+            if not result.is_error():
+                success_routes.append(route)
+            ret &= result
+        for route in success_routes:
+            self._callbacks.pop(route, None)
+        return ret

@@ -103,6 +103,7 @@ def main() -> None:
             cam.set_config_seq(config_seq)
             cam.update_nodes_default_values(nodes_default_values)
             cam.set_nodes_default_values()
+            cam.execute_config_seq()
             cam.start_acq()
             for route, callback in node_callbacks.items():
                 cam.register_node_callback(

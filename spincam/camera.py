@@ -264,7 +264,7 @@ class Camera:
 
     def clear(self) -> None:
         self.stop_acq()
-        self._node_callback_reg.unregister_all()
+        self.unregister_all_node_callbacks()
         self._ptr.DeInit()
         del self._ptr
 
@@ -287,9 +287,6 @@ class Camera:
     def start_acq(self) -> FuncResult:
         self.stop_acq()
         try:
-            ret: FuncResult = self.config_cam()
-            if ret.is_error():
-                raise RuntimeError('Error configuring camera.')
             self._ptr.BeginAcquisition()
             if not self._ptr.IsStreaming():
                 raise PySpin.SpinnakerException('Camera is not streaming.')
@@ -396,7 +393,7 @@ class Camera:
             return FuncResult.ERROR
         return FuncResult.SUCCESS
 
-    def config_cam(self) -> FuncResult:
+    def execute_config_seq(self) -> FuncResult:
         result: FuncResult = FuncResult.SUCCESS
         for step in self._config_seq.seq:
             ret: FuncResult
@@ -420,6 +417,9 @@ class Camera:
 
     def unregister_node_callback(self, route: str) -> FuncResult:
         return self._node_callback_reg.unregister(route= route)
+
+    def unregister_all_node_callbacks(self) -> FuncResult:
+        return self._node_callback_reg.unregister_all()
 
 
 class CameraReg:
