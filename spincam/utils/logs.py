@@ -108,10 +108,6 @@ class MyLogger:
         return self._logger.parent
 
     @property
-    def level_str(self) -> str:
-        return logging.getLevelName(self.level)
-
-    @property
     def save_logs(self) -> bool:
         return self._save_logs
 

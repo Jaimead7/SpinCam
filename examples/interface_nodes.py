@@ -20,28 +20,28 @@
 
 # ================================================================================
 # 
-# This example shows a list of the camera nodes.
+# This example shows a list of the interface nodes.
 # 
-# The program will show a list of the available cameras.
-# Select the camera you want to display the info by it's serial number.
+# The program will show a list of the available interfaces.
+# Select the interface you want to display the info by it's ID number.
 # 
 # ================================================================================
 
 
-from spincam import Camera, get_cam_list_repr, get_sys
+from spincam import Iface, get_iface_list_repr, get_sys
 
 
 def main() -> None:
     try:
         with get_sys() as sys:
-            print(get_cam_list_repr(sys.cams))
-            cam_selected: str = input('Select a camera by serial number: ')
-            if cam_selected not in sys.cams_serial_numbers:
-                raise ValueError('Please select a valid serial number.')
-            cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
-            if cam is None:
-                raise ValueError(f'Error getting "{cam_selected}" camera.')
-            tree: str = cam.get_nodes_repr()
+            print(get_iface_list_repr(sys.ifaces))
+            iface_selected: str = input('Select an interface by id: ')
+            if iface_selected not in sys.ifaces_ids:
+                raise ValueError('Please select a valid id.')
+            iface: Iface | None = sys.get_iface_by_id(iface_selected)
+            if iface is None:
+                raise ValueError(f'Error getting "{iface_selected}" interface.')
+            tree: str = iface.get_nodes_repr()
             print(tree)
     except ValueError as e:
         print(e)

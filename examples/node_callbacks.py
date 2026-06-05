@@ -44,18 +44,17 @@ from typing import Any
 import cv2
 import numpy as np
 
-from spincam import (FuncResult, NodeCallbackFunc, NodePtr,
-                     get_available_cam_serial_numbers, get_cam_list_repr,
-                     get_camera)
+from spincam import (Camera, FuncResult, Node, NodeCallbackFunc,
+                     get_cam_list_repr, get_sys)
 
 
-def callback_func(node_ptr: NodePtr) -> FuncResult:
-    print(f'"{node_ptr.display_name}" node callback execution...')
+def callback_func(node: Node) -> FuncResult:
+    print(f'{node.parent}: "{node.display_name}" node callback execution...')
     wait_time: int = randint(1, 5)
     start: float = time()
     sleep(wait_time)
     end: float = time()
-    print(f'"{node_ptr.display_name}" node callback executed in {end - start:.4f}s, expected {wait_time}s.')
+    print(f'{node.parent}: "{node.display_name}" node callback executed in {end - start:.4f}s, expected {wait_time}s.')
     return FuncResult.SUCCESS
 
 
@@ -66,7 +65,7 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
     'App.Root.DigitalIOControl.TriggerMode': 'On',
-    'App.Root.DigitalIOControl.TriggerSource': 'Software',
+    'App.Root.DigitalIOControl.TriggerSource': 'Line1',
     'App.Root.deviceCounterAndTimerControl.counterSelector': 'Counter1',
     'App.Root.deviceCounterAndTimerControl.counterMode': 'Off',
     'App.Root.deviceCounterAndTimerControl.counterStartSource': 'AcquisitionStart',
@@ -84,25 +83,28 @@ node_callbacks: dict[str, NodeCallbackFunc] = {
 }
 
 def main() -> None:
-    print(get_cam_list_repr())
-    cam_selected: str = input('Select a camera: ')
-
-    if not cam_selected in get_available_cam_serial_numbers():
-        raise ValueError('Please select a valid serial number.')
-
-    window_name: str = f'Camera: {cam_selected}'
-
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-
     try:
-        with get_camera(cam_selected) as cam:
-            cam.update_nodes_default_values(nodes_default_values).set_nodes_default_values()
+        with get_sys() as sys:
+            print(get_cam_list_repr(sys.cams))
+            cam_selected: str = input('Select a camera by serial number: ')
+            if cam_selected not in sys.cams_serial_numbers:
+                raise ValueError('Please select a valid serial number.')
+            cam: Camera | None = sys.get_cam_by_serial_number(cam_selected)
+            if cam is None:
+                raise ValueError(f'Error getting "{cam_selected}" camera.')
+            window_name: str = f'Camera: {cam_selected}'
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cam.update_nodes_default_values(nodes_default_values)
+            cam.set_nodes_default_values()
             cam.set_node_value(
                 'App.Root.deviceCounterAndTimerControl.counterMode',
                 'Active'
             )
-            for route, func in node_callbacks.items():
-                cam.register_node_callback(route, func)
+            for route, callback in node_callbacks.items():
+                cam.register_node_callback(
+                    route= route,
+                    callback= callback
+                )
             cam.start_acq()
             exit = False
             while True:
@@ -134,7 +136,10 @@ def main() -> None:
                     break
     except ValueError as e:
         print(e)
-
+    except RuntimeError as e:
+        print(e)
+    except KeyboardInterrupt:
+        print('\nStopping program...')
     cv2.destroyAllWindows()
 
 

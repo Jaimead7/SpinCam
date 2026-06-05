@@ -19,22 +19,127 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 
 import PySpin
 
+from .callbacks.sys_callbacks import SysEventCallback, SysEventHandler
+from .camera import Camera
+from .interface import Iface, IfaceReg
+from .schemas import FuncResult
 from .utils.logs import Styles, spincam_logger
 
 
+class System:
+    def __init__(self, sys: PySpin.System) -> None:
+        self._sys: PySpin.System = sys
+        self._iface_reg = IfaceReg(self)
+        self._sys_events: SysEventHandler = SysEventHandler(self)
+
+    def __str__(self) -> str:
+        return 'System'
+
+    @property
+    def ifaces(self) -> Iterable[Iface]:
+        self._update_ifaces()
+        return self._iface_reg.ifaces.values()
+
+    @property
+    def ifaces_ids(self) -> Iterable[str]:
+        self._update_ifaces()
+        return self._iface_reg.ifaces.keys()
+
+    @property
+    def cams(self) -> Iterable[Camera]:
+        cam_list: Iterable[Camera] = []
+        for iface in self.ifaces:
+            cam_list.extend(iface.cams)
+        return cam_list
+
+    @property
+    def cams_serial_numbers(self) -> Iterable[str]:
+        serial_numbers: Iterable[str] = []
+        for iface in self.ifaces:
+            serial_numbers.extend(iface.cams_serial_numbers)
+        return serial_numbers
+
+    def _update_ifaces(self) -> None:
+        try:
+            iface_list: PySpin.InterfaceList = self._sys.GetInterfaces()
+            self._iface_reg.update(iface_list)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t update system interfaces. {e}'
+            spincam_logger.warning(msg)
+        finally:
+            try:
+                iface_list.Clear()  # type: ignore
+            except (NameError, PySpin.SpinnakerException):
+                pass
+            try:
+                del iface_list  # type: ignore
+            except NameError:
+                pass
+
+    def clear(self) -> None:
+        self.unregister_events()
+        del self._sys_events
+        self._iface_reg.clear()
+        del self._iface_reg
+        self._sys.ReleaseInstance()
+
+    def get_iface_by_id(self, id: str) -> Iface | None:
+        self._update_ifaces()
+        return self._iface_reg.get(id)
+
+    def get_cam_by_serial_number(self, serial_number: str) -> Camera | None:
+        for iface in self.ifaces:
+            cam: Camera | None = iface.get_cam_by_serial_number(serial_number)
+            if cam is None:
+                continue
+            return cam
+        msg: str = f'Camera "{serial_number}" not found.'
+        spincam_logger.warning(msg)
+        return None
+
+    def register_events(
+        self,
+        iface_arrival_callback: SysEventCallback | None = None,
+        iface_removal_callback: SysEventCallback | None = None
+    ) -> FuncResult:
+        self.unregister_events()
+        if iface_arrival_callback is not None:
+            self._sys_events.set_arr_callback(iface_arrival_callback)
+        if iface_removal_callback is not None:
+            self._sys_events.set_rm_callback(iface_removal_callback)
+        try:
+            self._sys.RegisterEventHandler(self._sys_events)
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t register system events. {e}'
+            spincam_logger.error(msg)
+            return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+    def unregister_events(self) -> FuncResult:
+        try:
+            self._sys.UnregisterEventHandler(self._sys_events)
+        except PySpin.SpinnakerException as e:
+            if e.errorcode not in (-1014,):
+                msg: str = f'Can\'t unregister system events. {e}'
+                spincam_logger.warning(msg)
+                return FuncResult.ERROR
+        return FuncResult.SUCCESS
+
+
 @contextmanager
-def get_sys() -> Generator[PySpin.System, None, None]:
+def get_sys() -> Generator[System, None, None]:
     try:
-        system: PySpin.System = PySpin.System.GetInstance()
+        sys: PySpin.System = PySpin.System.GetInstance()
+        system: System = System(sys)
         yield system
     finally:
         try:
-            system.ReleaseInstance()  # type: ignore
+            system.clear()  # type: ignore
         except NameError:
             pass
         except PySpin.SpinnakerException:

@@ -20,7 +20,7 @@
 
 
 from enum import IntEnum
-from typing import Protocol
+from typing import Any, Protocol
 
 import PySpin
 from typing_extensions import Self
@@ -36,11 +36,13 @@ class FuncResult(IntEnum):
     def is_error(self) -> bool:
         return self.value < 0
 
+    def __and__(self, other: Any) -> Self:
+        if self < 0 or other < 0:
+            return type(self)(-1)
+        return type(self)(0)
 
-class GenericPtr(Protocol):
-    def __init__(self, *args) -> None: ...
-    def GetDisplayName(self) -> str: ...
-    def GetNode(self) -> PySpin.INode: ...
+    def __rand__(self, other: Any) -> Self:
+        return self.__and__(other)
 
 
 class NodeStatus(IntEnum):
