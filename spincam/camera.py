@@ -44,9 +44,9 @@ if TYPE_CHECKING:
 
 @dataclass
 class CamConfigStep:
+    step: int
     route: str
     value: Any
-    step: int
 
     def __lt__(self, other: CamConfigStep) -> bool:
         if not isinstance(other, CamConfigStep):
@@ -75,7 +75,7 @@ class CamConfigStep:
 
 
 class CamConfigSeq:
-    def __init__(self, steps: Iterable[CamConfigStep] = ()) -> None:
+    def __init__(self, steps: Iterable[Any] = ()) -> None:
         self._seq: list[CamConfigStep] = []
         self._seq.extend(steps)
         self._seq.sort()
@@ -85,7 +85,7 @@ class CamConfigSeq:
         return tuple(self._seq)
 
     @seq.setter
-    def seq(self, steps: Iterable[CamConfigStep]) -> None:
+    def seq(self, steps: Iterable[Any]) -> None:
         self._seq.clear()
         self._seq.extend(steps)
         self._seq.sort()
@@ -94,8 +94,21 @@ class CamConfigSeq:
         self._seq.append(step)
         self._seq.sort()
 
-    def extend(self, steps: Iterable[CamConfigStep]) -> None:
-        self._seq.extend(steps)
+    def extend(self, steps: Iterable[Any]) -> None:
+        for step in steps:
+            if isinstance(step, CamConfigStep):
+                self._seq.append(step)
+                continue
+            if isinstance(step, dict):
+                self._seq.append(CamConfigStep(**step))
+                continue
+            if isinstance(step, Iterable):
+                try:
+                    self._seq.append(CamConfigStep(*step))
+                except Exception as e:
+                    msg: str = f'Can\'t create {CamConfigStep.__name__} from {step}. {e}'
+                    spincam_logger.warning(msg)
+                continue
         self._seq.sort()
 
     def __len__(self) -> int:
@@ -384,9 +397,9 @@ class Camera:
             fun_res &= ret
         return fun_res
 
-    def set_config_seq(self, steps: Iterable[CamConfigStep]) -> FuncResult:
+    def set_config_seq(self, steps: Iterable[Any]) -> FuncResult:
         try:
-            self._config_seq.seq = steps
+            self._config_seq = CamConfigSeq(steps)
         except Exception as e:
             msg: str = f'{self}: Unable to set the configuration sequence. {e}'
             spincam_logger.error(msg)
