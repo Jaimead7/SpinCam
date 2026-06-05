@@ -48,41 +48,8 @@ from spincam import (CamConfigSeq, CamConfigStep, Camera, FuncResult, Iface,
                      Node, NodeCallbackFunc, get_sys)
 
 
-def callback_func(node: Node) -> FuncResult:
-    print(f'{node.parent}: "{node.display_name}" node callback execution...')
-    wait_time: int = randint(1, 5)
-    start: float = time()
-    sleep(wait_time)
-    end: float = time()
-    print(f'{node.parent}: "{node.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
-    return FuncResult.SUCCESS
-
-nodes_default_values: dict[str, Any] = {
-    'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
-    'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
-    'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
-    'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
-    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
-}
-
-config_seq: CamConfigSeq = CamConfigSeq(
-    (
-        CamConfigStep(step= 1, route= 'App.Root.DigitalIOControl.TriggerMode', value= 'On'),
-        CamConfigStep(step= 2, route= 'App.Root.DigitalIOControl.TriggerSource', value= 'Line1'),
-        CamConfigStep(step= 3, route= 'App.Root.deviceEventControl.EventSelector', value= 'ValidFrameTrigger'),
-        CamConfigStep(step= 4, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
-        CamConfigStep(step= 5, route= 'App.Root.deviceEventControl.EventSelector', value= 'InvalidFrameTrigger'),
-        CamConfigStep(step= 6, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
-    )
-)
-
-node_callbacks: dict[str, NodeCallbackFunc] = {
-    'App.Root.deviceSensorControl.Gain': callback_func,
-    'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
-}
-
-def cam_arrival(cam: Camera) -> FuncResult:
-    print(f'{cam.name} connected to {cam.iface}.')
+#---------- CAMERA STREAM ----------#
+def cam_streaming(cam: Camera) -> None:
     try:
         window_name: str = f'Camera: {cam}'
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
@@ -114,9 +81,31 @@ def cam_arrival(cam: Camera) -> FuncResult:
                     break
             if key == 27 or exit:
                 break
+    except ValueError:
+        pass
+    except RuntimeError:
+        pass
+    except KeyboardInterrupt:
+        pass
     finally:
         cam.unregister_all_node_callbacks()
         cv2.destroyAllWindows()
+        print(f'{cam} stream closed.')
+
+#---------- CALLBAKCS ----------#
+def callback_func(node: Node) -> FuncResult:
+    print(f'{node.parent}: "{node.display_name}" node callback execution...')
+    wait_time: int = randint(1, 5)
+    start: float = time()
+    sleep(wait_time)
+    end: float = time()
+    print(f'{node.parent}: "{node.display_name}" node callback executed in {end - start:.2f}s, expected {wait_time}s.')
+    return FuncResult.SUCCESS
+
+#---------- EVENTS ----------#
+def cam_arrival(cam: Camera) -> FuncResult:
+    print(f'{cam.name} connected to {cam.iface}.')
+    cam_streaming(cam)
     return FuncResult.SUCCESS
 
 def cam_removal(cam: Camera) -> FuncResult:
@@ -135,6 +124,33 @@ def iface_removal(iface: Iface) -> FuncResult:
     print(f'{iface.name} removed.')
     return FuncResult.SUCCESS
 
+#---------- CONFIG ----------#
+nodes_default_values: dict[str, Any] = {
+    'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
+    'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
+    'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
+    'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
+    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
+}
+
+config_seq: CamConfigSeq = CamConfigSeq(
+    (
+        CamConfigStep(step= 1, route= 'App.Root.DigitalIOControl.TriggerMode', value= 'On'),
+        CamConfigStep(step= 2, route= 'App.Root.DigitalIOControl.TriggerSource', value= 'Line1'),
+        CamConfigStep(step= 3, route= 'App.Root.deviceEventControl.EventSelector', value= 'ValidFrameTrigger'),
+        CamConfigStep(step= 4, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+        CamConfigStep(step= 5, route= 'App.Root.deviceEventControl.EventSelector', value= 'InvalidFrameTrigger'),
+        CamConfigStep(step= 6, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+    )
+)
+
+node_callbacks: dict[str, NodeCallbackFunc] = {
+    'App.Root.deviceSensorControl.Gain': callback_func,
+    'App.Root.deviceEventControl.EventControl.EventValidFrameTriggerData.EventValidFrameTrigger': callback_func,
+}
+
+
+#---------- MAIN ----------#
 def main() -> None:
     with get_sys() as system:
         system.register_events(
