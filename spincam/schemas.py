@@ -20,7 +20,7 @@
 
 
 from enum import IntEnum
-from typing import Any, Protocol
+from typing import Any
 
 import PySpin
 from typing_extensions import Self
