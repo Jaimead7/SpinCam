@@ -77,7 +77,7 @@ class CamConfigStep:
 class CamConfigSeq:
     def __init__(self, steps: Iterable[Any] = ()) -> None:
         self._seq: list[CamConfigStep] = []
-        self._seq.extend(steps)
+        self.extend(steps)
         self._seq.sort()
 
     @property
@@ -87,7 +87,7 @@ class CamConfigSeq:
     @seq.setter
     def seq(self, steps: Iterable[Any]) -> None:
         self._seq.clear()
-        self._seq.extend(steps)
+        self.extend(steps)
         self._seq.sort()
 
     def append(self, step: CamConfigStep) -> None:
