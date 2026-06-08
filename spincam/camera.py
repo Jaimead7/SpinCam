@@ -189,8 +189,9 @@ class Camera:
                 raise PySpin.SpinnakerException('Camera not initialized.')
             return self._ptr.GetNodeMap()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self}: Can\'t get the NodeMap. {e}'
-            spincam_logger.error(msg)
+            if e.errorcode not in (-1024,):  # Camera removed from the list
+                msg: str = f'{self}: Can\'t get the NodeMap. {e}'
+                spincam_logger.error(msg)
             return None
 
     @property
@@ -200,8 +201,9 @@ class Camera:
                 raise PySpin.SpinnakerException('Camera not initialized.')
             return self._ptr.GetTLDeviceNodeMap()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self}: Can\'t get the TLDeviceNodeMap. {e}'
-            spincam_logger.error(msg)
+            if e.errorcode not in (-1024,):  # Camera removed from the list
+                msg: str = f'{self}: Can\'t get the TLDeviceNodeMap. {e}'
+                spincam_logger.error(msg)
             return None
 
     @property
@@ -211,8 +213,9 @@ class Camera:
                 raise PySpin.SpinnakerException('Camera not initialized.')
             return self._ptr.GetTLStreamNodeMap()
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self}: Can\'t get the TLStreamNodeMap. {e}'
-            spincam_logger.error(msg)
+            if e.errorcode not in (-1024,):  # Camera removed from the list
+                msg: str = f'{self}: Can\'t get the TLStreamNodeMap. {e}'
+                spincam_logger.error(msg)
             return None
 
     def _root_node_ptrs(self) -> dict[str, Node]:
@@ -270,8 +273,9 @@ class Camera:
                 msg: str = 'Camera not initialized.'
                 raise PySpin.SpinnakerException(msg)
         except PySpin.SpinnakerException as e:
-            msg: str = f'{self}: Unable to init. {e}'
-            spincam_logger.error(msg)
+            if e.errorcode not in (-1002,):  # Camera removed from the list
+                msg: str = f'{self}: Unable to init. {e}'
+                spincam_logger.error(msg)
             return FuncResult.ERROR
         return FuncResult.SUCCESS
 
