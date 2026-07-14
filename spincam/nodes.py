@@ -728,6 +728,12 @@ class CommandNode(Node[PySpin.CCommandPtr]):
     def get_value(self) -> tuple[FuncResult, Any]:
         return FuncResult.SUCCESS, 'Execute'
 
+    def set_value(self, value: Any = None) -> tuple[FuncResult, Any]:
+        if value:
+            self.execute()
+            return FuncResult.SUCCESS, True
+        return FuncResult.SUCCESS, False
+
     def execute(self) -> FuncResult:
         if not self.status.can_write():
             msg: str = f'{self.parent}: Unable to execute "{self.name}" node. It is not a write node.'
@@ -735,6 +741,8 @@ class CommandNode(Node[PySpin.CCommandPtr]):
             return FuncResult.ERROR
         try:
             self.node.Execute()
+            msg: str = f'{self.parent}: "{self.name}" executed.'
+            spincam_logger.info(msg)
         except PySpin.SpinnakerException as e:
             msg: str = f'{self.parent}: Unable execute "{self.name}" node. {e}'
             spincam_logger.error(msg)
