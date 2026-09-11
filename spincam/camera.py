@@ -339,7 +339,10 @@ class Camera:
             img_res: PySpin.ImagePtr = self._ptr.GetNextImage(ms_timeout, stream_id)
             if img_res.IsIncomplete():
                 img_status: int = img_res.GetImageStatus()
-                msg: str = f'{self}: Image incomplete with image status {img_status}.'
+                img_status_desc: str = PySpin.Image.GetImageStatusDescription(
+                    status= img_status
+                )
+                msg: str = f'{self}: Image incomplete: [{img_status}] {img_status_desc}.'
                 spincam_logger.error(msg)
                 return None
             img_array: np.ndarray = img_res.GetNDArray()
