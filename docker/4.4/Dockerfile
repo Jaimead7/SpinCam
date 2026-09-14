@@ -19,31 +19,31 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-FROM ubuntu:22.04 AS pyspin-installer
+FROM ubuntu:24.04 AS pyspin-installer
 
 # Change working directory
 WORKDIR /tmp/
 
 # Copy installation files
-COPY packages/pyspin-4.3.tar.gz /tmp/packages/
+COPY packages/pyspin-4.4.tar.gz /tmp/packages/
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Python
-    python3.10 \
-    python3.10-venv \
+    python3.12 \
+    python3.12-venv \
     python3-pip \
     # Create Python symbolic links
-    && ln -s /bin/python3.10 /bin/python \
-    && ln -s /bin/python3.10 /bin/py \
+    && ln -s /bin/python3.12 /bin/python \
+    && ln -s /bin/python3.12 /bin/py \
     # Create Python virtual environment
     && python -m venv /app/.venv \
     && /app/.venv/bin/python3 -m pip install --no-cache-dir --upgrade pip \
-    && /app/.venv/bin/python3 -m pip install --no-cache-dir "numpy<2" \
+    && /app/.venv/bin/python3 -m pip install --no-cache-dir "numpy" \
     # && /app/.venv/bin/python3 -m pip install git+https://github.com/jaimead7/SpinCam.git@main \
     && /app/.venv/bin/python3 -m pip install --no-cache-dir jaimead7-spincam[headless] \
     # Install PySpin
-    && tar -xzf packages/pyspin-4.3.tar.gz --wildcards '*.whl' \
+    && tar -xzf packages/pyspin-4.4.tar.gz --wildcards '*.whl' \
     && /app/.venv/bin/python3 -m pip install --no-cache-dir /tmp/*.whl \
     # Clear
     && rm -rf /tmp/* \
@@ -51,13 +51,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 
-FROM ubuntu:22.04 AS spinnaker-installer
+FROM ubuntu:24.04 AS spinnaker-installer
 
 # Change working directory
 WORKDIR /tmp/
 
 # Copy installation files
-COPY packages/spinnaker-sdk-4.3.tar.gz /tmp/packages/
+COPY packages/spinnaker-sdk-4.4.tar.gz /tmp/packages/
 COPY tools/*.sh /tmp/tools/
 
 # Install dependencies
@@ -66,14 +66,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libusb-1.0-0 \
     # Spinnaker SDK dependency libgomp.so.1
     libgomp1 \
-    # Spinnaker SDK dependency libswscale.so.5
-    libswscale5 \
-    # # Spinnaker SDK dependency libavcodec.so.58
-    libavcodec-extra58 \
-    # # Spinnaker SDK dependency libavformat.so.58
-    libavformat-extra58 \
-    # # Install Spinnaker
-    && sh tools/spinnaker_silent_install.sh packages/spinnaker-sdk-4.3.tar.gz \
+    # Spinnaker SDK dependency libswscale.so.7
+    libswscale7 \
+    # Spinnaker SDK dependency libavcodec.so.60
+    libavcodec-extra60 \
+    # Spinnaker SDK dependency libavformat.so.60
+    libavformat-extra60 \
+    # Install Spinnaker
+    && sh tools/spinnaker_silent_install.sh packages/spinnaker-sdk-4.4.tar.gz \
     # Clear
     && rm -rf /tmp/* \
     && rm -rf /var/lib/apt/lists/* \
@@ -91,9 +91,9 @@ COPY --from=pyspin-installer /app/.venv /app/.venv
 # Install python
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Python
-    python3.10 \
-    && ln -s /bin/python3.10 /bin/python \
-    && ln -s /bin/python3.10 /bin/py \
+    python3.12 \
+    && ln -s /bin/python3.12 /bin/python \
+    && ln -s /bin/python3.12 /bin/py \
     # Clear
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
