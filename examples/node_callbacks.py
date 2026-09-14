@@ -118,7 +118,7 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
     'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
-    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart'
+    'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
 }
 
 config_seq: list[CamConfigStep] = [
@@ -135,6 +135,7 @@ config_seq: list[CamConfigStep] = [
     CamConfigStep(step= 11, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
     CamConfigStep(step= 12, route= 'App.Root.deviceEventControl.EventSelector', value= 'InvalidFrameTrigger'),
     CamConfigStep(step= 13, route= 'App.Root.deviceEventControl.EventNotification', value= 'On'),
+    CamConfigStep(step= 14, route= 'App.Root.TransportLayerControl.GevSCPSPacketSize', value= 9000),
 ]
 
 node_callbacks: dict[str, NodeCallbackFunc] = {

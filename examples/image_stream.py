@@ -54,6 +54,7 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
     'App.Root.DigitalIOControl.TriggerMode': 'Off',
+    'App.Root.TransportLayerControl.GevSCPSPacketSize': 9000,
 }
 
 

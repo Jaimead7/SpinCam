@@ -19,11 +19,15 @@ Check the [Create Docker Container](docs/create_docker_container.md) file.
 ## Installation  
 - Go to the ***Spinnaker SDK*** and ***PySpin*** [download page](https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/) and download both packages (It may require a login).  
 - Follow the [installing instructions](https://www.teledynevisionsolutions.com/support/support-center/technical-guidance/iis/installing-pyspin-for-the-spinnaker-sdk/) for the SDK and ***PySpin***.  
+> *It is recommended to check the `Readme.md` of each package.*  
+> For Ubuntu installation, it is important to follow the section 4 of the ***Spinnaker SDK*** `Readme.md`.  
 - It is recommended to install ***PySpin*** on a ***Python*** environment.  
 - Install ***SpinCam***:
 ```
 py -m pip install jaimead7-spincam
 ```
+> ***It is strongly recommended to always configure the camera's `GevSCPSPacketSize` node.***
+
 
 ## Usage  
 See ***[examples](./examples/)***.  

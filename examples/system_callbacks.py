@@ -131,6 +131,7 @@ nodes_default_values: dict[str, Any] = {
     'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
+    'App.Root.TransportLayerControl.GevSCPSPacketSize': 9000,
 }
 
 config_seq: CamConfigSeq = CamConfigSeq(
