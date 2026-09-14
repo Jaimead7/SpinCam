@@ -115,7 +115,7 @@ def callback_func(node: Node) -> FuncResult:
 #---------- CONFIG ----------#
 nodes_default_values: dict[str, Any] = {
     'App.Root.acquisitionTransferControl.AcquisitionMode': 'Continuous',
-    'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',
+    'Stream.Root.StreamInformation.StreamMode': 'TeledyneGigeVision',  # Use 'Socket' on linux
     'Stream.Root.BufferHandlingControl.StreamBufferHandlingMode': 'NewestOnly',
     'Stream.Root.BufferHandlingControl.StreamBufferCountManual': 3,
     'App.Root.DigitalIOControl.TriggerSelector': 'FrameStart',
