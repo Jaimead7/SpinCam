@@ -25,7 +25,7 @@ FROM ubuntu:22.04 AS pyspin-installer
 WORKDIR /tmp/
 
 # Copy installation files
-COPY packages/pyspin.tar.gz /tmp/packages/
+COPY packages/pyspin-4.3.tar.gz /tmp/packages/
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && /app/.venv/bin/python3 -m pip install --no-cache-dir "numpy<2" \
     && /app/.venv/bin/python3 -m pip install --no-cache-dir jaimead7-spincam[headless] \
     # Install PySpin
-    && tar -xzf packages/pyspin.tar.gz --wildcards '*.whl' \
+    && tar -xzf packages/pyspin-4.3.tar.gz --wildcards '*.whl' \
     && /app/.venv/bin/python3 -m pip install --no-cache-dir /tmp/*.whl \
     # Clear
     && rm -rf /tmp/* \
@@ -56,7 +56,7 @@ FROM ubuntu:22.04 AS spinnaker-installer
 WORKDIR /tmp/
 
 # Copy installation files
-COPY packages/*.tar.gz /tmp/packages/
+COPY packages/spinnaker-sdk-4.3.tar.gz /tmp/packages/
 COPY tools/*.sh /tmp/tools/
 
 # Install dependencies
@@ -72,7 +72,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # # Spinnaker SDK dependency libavformat.so.58
     libavformat-extra58 \
     # # Install Spinnaker
-    && sh tools/spinnaker_silent_install.sh packages/spinnaker-sdk.tar.gz \
+    && sh tools/spinnaker_silent_install.sh packages/spinnaker-sdk-4.3.tar.gz \
     # Clear
     && rm -rf /tmp/* \
     && rm -rf /var/lib/apt/lists/* \
