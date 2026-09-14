@@ -157,7 +157,7 @@ class Camera:
                 raise PySpin.SpinnakerException('It is not a read node.')
             return model_name_node.ToString().strip()
         except PySpin.SpinnakerException as e:
-            msg: str = f'Can\'t get the device model name.'
+            msg: str = f'Can\'t get the device model name. {e}'
             spincam_logger.warning(msg)
             return 'Unknown'
 
@@ -320,7 +320,7 @@ class Camera:
             self._ptr.EndAcquisition()
             msg: str = f'{self}: Camera acquisition stopped.'
             spincam_logger.info(msg)
-        except PySpin.SpinnakerException:
+        except PySpin.SpinnakerException as e:
             pass
         if self._ptr.IsStreaming():
             msg: str = f'{self}: Can\'t stop camera acquisition.'

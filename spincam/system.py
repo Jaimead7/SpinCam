@@ -142,8 +142,8 @@ def get_sys() -> Generator[System, None, None]:
             system.clear()  # type: ignore
         except NameError:
             pass
-        except PySpin.SpinnakerException:
-            msg: str = 'Can\'t clear system. Something still holds a reference.'
+        except PySpin.SpinnakerException as e:
+            msg: str = f'Can\'t clear system. Something still holds a reference. {e}'
             spincam_logger.error(msg)
             raise RuntimeError(msg)
         msg: str = f'PySpin system cleared.'

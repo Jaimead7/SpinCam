@@ -116,8 +116,8 @@ class Node(Generic[T]):
             if display_name == 'Root':
                 display_name = self.parent_node_route
             return display_name
-        except PySpin.SpinnakerException:
-            msg: str = f'{self.parent}: Unable to get display name for "{self.name}" node.'
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.parent}: Unable to get display name for "{self.name}" node. {e}'
             spincam_logger.error(msg)
             return self.name
 
@@ -492,8 +492,8 @@ class IntNode(Node[PySpin.CIntegerPtr]):
                 msg: str = f'{self.parent}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
                 spincam_logger.warning(msg)
                 value = max_val
-        except PySpin.SpinnakerException:
-            msg: str = f'{self.parent}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.parent}: Unable to get min and max values for "{self.name}" node. Value will not be validated. {e}'
             spincam_logger.warning(msg)
         return value
 
@@ -580,8 +580,8 @@ class FloatNode(Node[PySpin.CFloatPtr]):
                 msg: str = f'{self.parent}: "{value}" is grater than "{self.name}" max value. "{max_val}" will be used.'
                 spincam_logger.warning(msg)
                 value = max_val
-        except PySpin.SpinnakerException:
-            msg: str = f'{self.parent}: Unable to get min and max values for "{self.name}" node. Value will not be validated.'
+        except PySpin.SpinnakerException as e:
+            msg: str = f'{self.parent}: Unable to get min and max values for "{self.name}" node. Value will not be validated. {e}'
             spincam_logger.warning(msg)
         return value
 
