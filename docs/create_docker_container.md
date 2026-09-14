@@ -2,13 +2,13 @@
 
 ## Download Sinnaker SDK and PySpin  
 - Go to the ***Spinnaker SDK*** and ***PySpin*** [download page](https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/) and download both packages (It may require a login).  
-> Dowload the Ubuntu 22.04 and Python 3.10 versions for your system.  
-> For other versions you may need to change the [Dockerfile](../docker/Dockerfile) base image or ***Python*** version.  
-> [spinnaker_silent_install.sh](../docker/tools/spinnaker_silent_install.sh) it was tested only on Ubuntu 22.04 - 64-bit. Other versions may fail.  
-- Copy the `.tar.gz` files in the [docker/packages](../docker/packages/) folder.  
-> Use `pyspin.tar.gz` name for the ***PySpin*** file.  
-> Use `spinnaker-sdk.tar.gz` name for the ***Spinnaker*** file.  
-> For other names change the [Dockerfile](../docker/Dockerfile).  
+> Download the Ubuntu package of the desired version.  
+> ***SpinCam*** provides installation files for ***Spinnaker 4.3*** for Ubuntu 22.04 and ***Spinnaker 4.4*** for Ubuntu 24.04.  
+> For other versions you may need to change the `Dockerfile` and the `tools/*.sh` files.  
+- Copy the `.tar.gz` files in the [docker/\<version>/packages/](../docker/) folder.  
+> Use `pyspin-<version>.tar.gz` name for the ***PySpin*** file.  
+> Use `spinnaker-sdk-<version>.tar.gz` name for the ***Spinnaker*** file.  
+> For other names change the provided `Dockerfile`.  
 
 ## Configure the [spinnaker_silent_install.sh](../docker/tools/spinnaker_silent_install.sh) script  
 This script is configured to install a minimal version of ***Spinnaker*** and ***PySpin*** to run ***SpinCam***.  
